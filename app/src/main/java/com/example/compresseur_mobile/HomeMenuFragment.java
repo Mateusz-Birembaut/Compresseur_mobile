@@ -15,7 +15,6 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
@@ -31,11 +30,12 @@ public class HomeMenuFragment extends Fragment {
     private ActivityResultLauncher<String> requestCameraPermission;
     private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;
     private ActivityResultLauncher<Uri> takePicture;
-    private Uri photoURI;
+    private Uri imgURI;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.home_menu, container, false);
+
 
         requestCameraPermission = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
@@ -50,7 +50,9 @@ public class HomeMenuFragment extends Fragment {
 
         pickMedia = registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
             if (uri != null) {
+                imgURI = uri;
                 Log.d("PhotoPicker", "Selected URI: " + uri);
+                goToCompression();
             } else {
                 Log.d("PhotoPicker", "No media selected");
             }
@@ -58,7 +60,8 @@ public class HomeMenuFragment extends Fragment {
 
         takePicture = registerForActivityResult(new ActivityResultContracts.TakePicture(), result -> {
             if (result) {
-                Log.d("PhotoPicker", "Photo taken successfully: " + photoURI);
+                Log.d("PhotoPicker", "Photo taken successfully: " + imgURI);
+                goToCompression();
             } else {
                 Log.d("PhotoPicker", "Failed to take photo");
             }
@@ -101,8 +104,8 @@ public class HomeMenuFragment extends Fragment {
             Log.e("PhotoPicker", "Error occurred while creating the File");
         }
         if (photoFile != null) {
-            photoURI = FileProvider.getUriForFile(requireContext(), "com.example.compresseur_mobile.fileprovider", photoFile);
-            takePicture.launch(photoURI);
+            imgURI = FileProvider.getUriForFile(requireContext(), "com.example.compresseur_mobile.fileprovider", photoFile);
+            takePicture.launch(imgURI);
         }
     }
 
@@ -113,12 +116,19 @@ public class HomeMenuFragment extends Fragment {
         return File.createTempFile(imageFileName, ".jpg", storageDir);
     }
 
-    private void intentToCompress() {
+    private void goToCompression() {
+        CompressionFragment compressionFragment = new CompressionFragment();
 
+        Bundle bundle = new Bundle();
+        bundle.putString("img_uri", imgURI.toString());
+        compressionFragment.setArguments(bundle);
+
+        requireActivity().getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, compressionFragment)
+                .commit();
     }
 
     private void intentToDecompress() {
-
     }
 
 }

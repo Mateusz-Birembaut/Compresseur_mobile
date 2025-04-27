@@ -32,7 +32,7 @@ android {
 }
 
 dependencies {
-
+    implementation (libs.subsampling.scale.image.view)
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)
