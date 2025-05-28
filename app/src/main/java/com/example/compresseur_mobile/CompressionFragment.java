@@ -20,7 +20,17 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.card.MaterialCardView;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+
 public class CompressionFragment extends Fragment {
+
+    static {
+        System.loadLibrary("native-lib");
+    }
+
+    public native String stringFromJNI();
+    public native void compressImageNative(byte[] imageBytes, int quality, int method);
 
     private CompressionViewModel vm;
     private Uri imgURI;
@@ -109,7 +119,7 @@ public class CompressionFragment extends Fragment {
             @Override public void onStopTrackingTouch(SeekBar seekBar) {}
         });
 
-        bt_compress.setOnClickListener(v -> startFakeCompression());
+        bt_compress.setOnClickListener(v -> startCompression());
 
         return view;
     }
@@ -130,6 +140,30 @@ public class CompressionFragment extends Fragment {
         return selectedId == R.id.rb_method_1 ? 1 : 2;
     }
 
+    private void startCompression(){
+        try {
+            InputStream inputStream = requireContext().getContentResolver().openInputStream(imgURI);
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            //lit les octets de l'image et convertit en tableau d'octets
+            int nRead;
+            byte[] data = new byte[4096];
+            while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+                buffer.write(data, 0, nRead);
+            }
+
+            buffer.flush();
+            byte[] imageBytes = buffer.toByteArray();
+
+            int method = getSelectedCompressionMethod();
+            int quality = qualityBar.getProgress();
+
+            compressImageNative(imageBytes, quality, method);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void startFakeCompression() {
         bt_compress.setEnabled(false);
         v_loading_overlay.setVisibility(View.VISIBLE);
@@ -141,6 +175,8 @@ public class CompressionFragment extends Fragment {
             int fakePSNR = 40;
             long oldSize = 10_000_000;
             long newSize = 5_000_000;
+
+            android.util.Log.d("CompressionFragment", "stringFromJNI() retourne : " + stringFromJNI());
 
             vm.setResultUri(fakeResultUri);
             vm.setTaux(fakeTaux);
