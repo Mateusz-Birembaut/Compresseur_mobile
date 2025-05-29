@@ -38,7 +38,7 @@ ImageBase::ImageBase(int imWidth, int imHeight, bool isColor)
 		return;
 	
 	allocation_tableau(data, OCTET, nTaille);
-	dataD = (double*)malloc(sizeof(double) * nTaille);
+	//dataD = (double*)malloc(sizeof(double) * nTaille);
 	isValid = true;
 }
 
@@ -53,7 +53,7 @@ void ImageBase::init()
 	if(isValid)
 	{
 		free(data);
-		free(dataD);
+		//free(dataD);
 	}
 
 	data = 0;
@@ -67,7 +67,7 @@ void ImageBase::reset()
 	if(isValid)
 	{
 		free(data);
-		free(dataD);
+		//free(dataD);
 	}
 	isValid = false;
 }
@@ -112,7 +112,7 @@ void ImageBase::load(char *filename)
 		exit(0);
 	}
 	
-	dataD = (double*)malloc(sizeof(double) * nTaille);
+	//dataD = (double*)malloc(sizeof(double) * nTaille);
 
 	isValid = true;
 }
@@ -177,13 +177,13 @@ void ImageBase::copy(const ImageBase &copy)
 		return;
 	
 	allocation_tableau(data, OCTET, nTaille);
-	dataD = (double*)malloc(sizeof(double) * nTaille);
+	//dataD = (double*)malloc(sizeof(double) * nTaille);
 	isValid = true;
 
 	for(int i = 0; i < nTaille; ++i)
 	{
 		data[i] = copy.data[i];
-		dataD[i] = copy.dataD[i];
+		//dataD[i] = copy.dataD[i];
 	}
 
 }

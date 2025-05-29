@@ -12,8 +12,8 @@ public class CompressionViewModel extends ViewModel {
     private final MutableLiveData<Integer> quality = new MutableLiveData<>();
 
     private final MutableLiveData<Uri> resultUri    = new MutableLiveData<>();
-    private final MutableLiveData<Integer> taux     = new MutableLiveData<>();
-    private final MutableLiveData<Integer> psnr     = new MutableLiveData<>();
+    private final MutableLiveData<Float> taux     = new MutableLiveData<>();
+    private final MutableLiveData<Float> psnr     = new MutableLiveData<>();
     private final MutableLiveData<Long> oldSize     = new MutableLiveData<>();
     private final MutableLiveData<Long> newSize     = new MutableLiveData<>();
     private final MutableLiveData<Integer> selectedTab = new MutableLiveData<>(0);
@@ -28,10 +28,10 @@ public class CompressionViewModel extends ViewModel {
     public LiveData<Integer> getQuality() { return quality; }
     public LiveData<Uri> getResultUri()  { return resultUri; }
     public void setResultUri(Uri u)          { resultUri.setValue(u); }
-    public LiveData<Integer> getTaux()      { return taux; }
-    public void setTaux(int t)               { taux.setValue(t); }
-    public LiveData<Integer> getPsnr()      { return psnr; }
-    public void setPsnr(int p)               { psnr.setValue(p); }
+    public LiveData<Float> getTaux()      { return taux; }
+    public void setTaux(float t)               { taux.setValue(t); }
+    public LiveData<Float> getPsnr()      { return psnr; }
+    public void setPsnr(float p)               { psnr.setValue(p); }
     public LiveData<Long>   getOldSize()    { return oldSize; }
     public void setOldSize(long s)           { oldSize.setValue(s); }
     public LiveData<Long>   getNewSize()    { return newSize; }

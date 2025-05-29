@@ -60,15 +60,25 @@ std::vector<Block> getBlocks(ImageBase & imIn, int blockSize) {
 
 //reconstruction de l'image en niveau de gris à partir des blocs 
 void reconstructImage(std::vector<Block> & blocks, ImageBase & imIn, int blocksize){
-
     int height = imIn.getHeight();
     int width = imIn.getWidth();
-    float bls = 1.0/(float)blocksize;
+    //float bls = 1.0/(float)blocksize;
+
+    //__android_log_print(ANDROID_LOG_INFO, "Compression", "Reconstructing image of size %dx%d with block size %d", width, height, blocksize);
 
     for(int i = 0; i < height; i += blocksize){
         for(int j = 0; j < width; j += blocksize){
+            //__android_log_print(ANDROID_LOG_INFO, "Compression", "Processing block starting at (%d, %d)", i, j);
 
-            Block block = blocks[i * bls * (width * bls) + j * bls];
+            //Block block = blocks[i * bls * (width * bls) + j * bls];
+            int blocksPerRow = width / blocksize;
+            int blockIndex = (i / blocksize) * blocksPerRow + (j / blocksize);
+            if (blockIndex >= blocks.size()) {
+                __android_log_print(ANDROID_LOG_ERROR, "Compression", "reconstructing oob: %d >= %lu", blockIndex, blocks.size());
+                return;
+            }
+            Block block = blocks[blockIndex];
+            //__android_log_print(ANDROID_LOG_INFO, "Compression", "Accessing block at index: %d", blockIndex);
 
             for(int k = 0; k < blocksize; k++){
                 for(int l = 0; l < blocksize; l++){
@@ -79,12 +89,20 @@ void reconstructImage(std::vector<Block> & blocks, ImageBase & imIn, int blocksi
                         block.data[k][l] = 255;
                         //std::cout << "houla" << std::endl;
                     }
+                    //__android_log_print(ANDROID_LOG_INFO, "Compression", "Setting pixel at (%d, %d) to value %d", i + k, j + l, block.data[k][l]);
+
+                    if ((i + k) >= height || (j + l) >= width) {
+                        __android_log_print(ANDROID_LOG_WARN, "Compression", "Pixel coordinate (%d, %d) out of bounds (max: %d, %d)", i + k, j + l, height - 1, width - 1);
+                    }
+
                     imIn[i + k][j + l] = block.data[k][l];
                 }
             }
 
         }
     }
+
+    __android_log_print(ANDROID_LOG_INFO, "Compression", "reconstruction finished");
 
 }
 
@@ -117,9 +135,9 @@ void compression( char * cNomImgLue,  char * cNomImgOut, ImageBase & imIn, Compr
 
     RGB_to_YCbCr(imIn, imY, imCb, imCr);
 
-    imY.save("./img/out/Y.pgm");
-    imCb.save("./img/out/Cb.pgm");
-    imCr.save("./img/out/Cr.pgm");
+    //imY.save("./img/out/Y.pgm");
+    //imCb.save("./img/out/Cb.pgm");
+    //imCr.save("./img/out/Cr.pgm");
 
     __android_log_print(ANDROID_LOG_INFO, "Compression", "  Fini");
     //Sous échantillonage
@@ -140,8 +158,8 @@ void compression( char * cNomImgLue,  char * cNomImgOut, ImageBase & imIn, Compr
     down_sampling_bilinear(imCbFlou, downSampledCb);
     down_sampling_bilinear(imCrFlou, downSampledCr);
 
-    downSampledCb.save("./img/out/downSampledCb.pgm");
-    downSampledCr.save("./img/out/downSampledCr.pgm");
+    // downSampledCb.save("./img/out/downSampledCb.pgm");
+    //downSampledCr.save("./img/out/downSampledCr.pgm");
 
     __android_log_print(ANDROID_LOG_INFO, "Compression", "  Fini");
 
@@ -162,26 +180,29 @@ void compression( char * cNomImgLue,  char * cNomImgOut, ImageBase & imIn, Compr
 
     //On peut surement utiliser encore plus de threads
 
-    threads.emplace_back([&blocksY] {
+    threads.emplace_back([&blocksY, &settings] {
         for(Block & block : blocksY){
             DCT(block);
-            quantification(block);
+            //quantification(block);
+            quantification_better(block,quantificationLuminance , settings.QuantizationFactor);
             flattenZigZag(block);
         }
     });
 
-    threads.emplace_back([&blocksCb] {
+    threads.emplace_back([&blocksCb, &settings] {
         for(Block & block : blocksCb){
             DCT(block);
-            quantification(block);
+            //quantification(block);
+            quantification_better(block,quantificationChrominance, settings.QuantizationFactor);
             flattenZigZag(block);
         }
     });
 
-    threads.emplace_back([&blocksCr] {
+    threads.emplace_back([&blocksCr, &settings] {
         for(Block & block : blocksCr){
             DCT(block);
-            quantification(block);
+            //quantification(block);
+            quantification_better(block,quantificationChrominance, settings.QuantizationFactor);
             flattenZigZag(block);
         }
     });
@@ -237,7 +258,7 @@ void compression( char * cNomImgLue,  char * cNomImgOut, ImageBase & imIn, Compr
         thread.join();
     }
 
-    std::cout<<"size blocksRLE "<<blocksYRLE.size()<<" "<<blocksCbRLE.size()<<" "<<blocksCrRLE.size()<<std::endl;
+    __android_log_print(ANDROID_LOG_INFO, "Compression", "size blocksRLE %zu %zu %zu", blocksYRLE.size(), blocksCbRLE.size(), blocksCrRLE.size());
 
 
     std::vector<std::pair<int, int>> allBlocksRLE; //on fusionne les 3 canaux
@@ -246,18 +267,16 @@ void compression( char * cNomImgLue,  char * cNomImgOut, ImageBase & imIn, Compr
     allBlocksRLE.insert(allBlocksRLE.end(), blocksCrRLE.begin(), blocksCrRLE.end());
 
 
-    printf("  Fini\n");
-
-    printf("Huffman encoding ");
+    __android_log_print(ANDROID_LOG_INFO, "Compression", "  Fini");
+    __android_log_print(ANDROID_LOG_INFO, "Compression", "Huffman encoding ");
 
     std::vector<huffmanCodeSingle> codeTable;
 
     //on cree la table de codage
     HuffmanEncoding(allBlocksRLE, codeTable);
 
-    printf("Code table size: %lu\n", codeTable.size());
-
-    printf("  Fini\n");
+    __android_log_print(ANDROID_LOG_INFO, "Compression", "Code table size: %lu", codeTable.size());
+    __android_log_print(ANDROID_LOG_INFO, "Compression", "  Fini");
 
     std::string outFileName = cNomImgOut;
 
@@ -267,14 +286,16 @@ void compression( char * cNomImgLue,  char * cNomImgOut, ImageBase & imIn, Compr
                         blocksYRLE.size(), blocksCbRLE.size(),blocksCrRLE.size(),
                         outFileName, settings);
 
+    __android_log_print(ANDROID_LOG_INFO, "Compression", "  File written to %s", outFileName.c_str());
+
 }
 
 
 
 
-void decompression(const char * cNomImgIn, const char * cNomImgOut, ImageBase * imOut, CompressionSettings & settings){
+void decompression(const char * cNomImgIn, const char * cNomImgOut, ImageBase & imOut, CompressionSettings & settings){
     
-    printf("Decompression\n");
+    //printf("Decompression\n");
 
     std::string outFileName = cNomImgIn;
     std::vector<huffmanCodeSingle> codeTable;
@@ -288,16 +309,16 @@ void decompression(const char * cNomImgIn, const char * cNomImgOut, ImageBase * 
 
     int maxThreads = std::thread::hardware_concurrency();
 
-    printf("Reading huffman encoded file\n");
+    __android_log_print(ANDROID_LOG_INFO, "Decompression", "Reading huffman encoded file");
 
     readHuffmanEncoded(outFileName,
                         codeTable, BlocksRLEEncoded,
                         imageWidth, imageHeight, downSampledWidth, downSampledHeight,
                         channelYRLESize, channelCbRLESize, channelCrRLESize, settings);
 
-    std::cout<<"size downSampledWidth "<<downSampledWidth<<" "<<downSampledHeight<<std::endl;
+    __android_log_print(ANDROID_LOG_INFO, "Decompression", "size downSampledWidth %d %d", downSampledWidth, downSampledHeight);
 
-    printf("Code table size: %lu\n", codeTable.size());
+    __android_log_print(ANDROID_LOG_INFO, "Decompression", "Code table size: %lu", codeTable.size());
 
     std::vector<std::pair<int,int>> blocksYRLE; //les blocs applatis et encodés en RLE
     std::vector<std::pair<int,int>> blocksCbRLE;
@@ -306,8 +327,6 @@ void decompression(const char * cNomImgIn, const char * cNomImgOut, ImageBase * 
     std::vector<Block> blocksY;
     std::vector<Block> blocksCb;
     std::vector<Block> blocksCr;
-
-    imOut = new ImageBase(imageWidth, imageHeight, true);
 
     ImageBase imY(imageWidth, imageHeight, false);
 
@@ -318,64 +337,64 @@ void decompression(const char * cNomImgIn, const char * cNomImgOut, ImageBase * 
     ImageBase upSampledCr(imageWidth, imageHeight, false);
 
     //on sépare les 3 canaux
-    threads.emplace_back([&BlocksRLEEncoded, &blocksYRLE, channelYRLESize, &blocksY, &imY] {
+    threads.emplace_back([&BlocksRLEEncoded, &blocksYRLE, channelYRLESize, &blocksY, &imY, &settings] {
         for (int i = 0; i < channelYRLESize; i++) {
             blocksYRLE.push_back(BlocksRLEEncoded[i]);
         }
 
-        decompressBlocksRLE(blocksYRLE, blocksY, quantificationLuminance, nullptr);
-        printf("blocksY size: %lu\n", blocksY.size());
+        decompressBlocksRLE(blocksYRLE, blocksY, quantificationLuminance, &settings);
+        __android_log_print(ANDROID_LOG_INFO, "Decompression", "blocksY size: %lu", blocksY.size());
 
-        printf("Reconstructing Y channel\n");
+        __android_log_print(ANDROID_LOG_INFO, "Decompression", "Reconstructing Y channel");
         reconstructImage(blocksY, imY, 8);
-        printf("saving Y channel\n");
-        imY.save("./img/out/Y_decompressed.pgm");
+        __android_log_print(ANDROID_LOG_INFO, "Decompression", "saving Y channel");
+        //imY.save("./img/out/Y_decompressed.pgm");
     });
 
-    threads.emplace_back([&BlocksRLEEncoded, &blocksCbRLE, channelYRLESize, channelCbRLESize, &blocksCb, &imCb, &upSampledCb] {
+    threads.emplace_back([&BlocksRLEEncoded, &blocksCbRLE, channelYRLESize, channelCbRLESize, &blocksCb, &imCb, &upSampledCb, &settings] {
         for (int i = channelYRLESize; i < channelYRLESize + channelCbRLESize; i++) {
             blocksCbRLE.push_back(BlocksRLEEncoded[i]);
         }
 
-        decompressBlocksRLE(blocksCbRLE, blocksCb, quantificationChrominance, nullptr);
-        printf("blocksCb size: %lu\n", blocksCb.size());
-
-        printf("Reconstructing Cb channel\n");
+        decompressBlocksRLE(blocksCbRLE, blocksCb, quantificationChrominance, &settings);
+        __android_log_print(ANDROID_LOG_INFO, "Decompression", "blocksCb size: %lu", blocksCb.size());
+        __android_log_print(ANDROID_LOG_INFO, "Decompression", "Reconstructing Cb channel");
         reconstructImage(blocksCb, imCb, 8);
+        __android_log_print(ANDROID_LOG_INFO, "Decompression", "Cb reconstructed upsampling");
         up_sampling(imCb, upSampledCb);
-        upSampledCb.save("./img/out/Cb_decompressed.pgm");
+        //upSampledCb.save("./img/out/Cb_decompressed.pgm");
     });
 
-    threads.emplace_back([&BlocksRLEEncoded, &blocksCrRLE, channelYRLESize, channelCbRLESize, channelCrRLESize, &blocksCr, &imCr, &upSampledCr] {
+    threads.emplace_back([&BlocksRLEEncoded, &blocksCrRLE, channelYRLESize, channelCbRLESize, channelCrRLESize, &blocksCr, &imCr, &upSampledCr, &settings] {
         for (int i = channelYRLESize + channelCbRLESize; i < channelYRLESize + channelCbRLESize + channelCrRLESize; i++) {
             blocksCrRLE.push_back(BlocksRLEEncoded[i]);
         }
 
-        decompressBlocksRLE(blocksCrRLE, blocksCr, quantificationChrominance, nullptr);
-        printf("blocksCr size: %lu\n", blocksCr.size());
-
-        printf("Reconstructing Cr channel\n");
+        decompressBlocksRLE(blocksCrRLE, blocksCr, quantificationChrominance, &settings);
+        __android_log_print(ANDROID_LOG_INFO, "Decompression", "blocksCr size: %lu", blocksCr.size());
+        __android_log_print(ANDROID_LOG_INFO, "Decompression", "Reconstructing Cr channel");
         reconstructImage(blocksCr, imCr, 8);
+        __android_log_print(ANDROID_LOG_INFO, "Decompression", "Cr reconstructed upsampling");
         up_sampling(imCr, upSampledCr);
-        upSampledCr.save("./img/out/Cr_decompressed.pgm");
+        //upSampledCr.save("./img/out/Cr_decompressed.pgm");
     });
+
 
     for (auto &thread : threads) {
         thread.join();
     }
     threads.clear();
 
-    printf("Blocks decoding\n");
-
-    printf("Reconstructing image from blocks\n");
+    __android_log_print(ANDROID_LOG_INFO, "Decompression", "Blocks decoded");
 
 
-    printf("Reconstructing image from YCbCr\n");
-    YCbCr_to_RGB(imY, upSampledCb, upSampledCr, (*imOut));
 
-    printf("Saving decompressed image\n");
+    __android_log_print(ANDROID_LOG_INFO, "Decompression", "Reconstructing image from YCbCr");
+    YCbCr_to_RGB(imY, upSampledCb, upSampledCr, imOut);
+
+    //printf("Saving decompressed image\n");
     std::string cNomImgOutStr = cNomImgOut;
-    (*imOut).save(cNomImgOutStr.data());
+    //(*imOut).save(cNomImgOutStr.data());
 
 
 }

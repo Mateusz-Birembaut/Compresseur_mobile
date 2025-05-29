@@ -12,6 +12,6 @@ void reconstructImage(std::vector<Block> & blocks, ImageBase & imIn, int blocksi
 
 void compression( char * cNomImgLue,  char * cNomImgOut, ImageBase & imIn, CompressionSettings & settings);
 
-void decompression(const char * cNomImgIn, const char * cNomImgOut, ImageBase * imOut, CompressionSettings & settings);
+void decompression(const char * cNomImgIn, const char * cNomImgOut, ImageBase & imOut, CompressionSettings & settings);
 
 

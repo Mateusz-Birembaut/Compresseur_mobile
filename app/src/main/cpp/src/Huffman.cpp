@@ -10,6 +10,7 @@
 #include <iostream>
 #include <stdint.h>
 #include <fstream>
+#include <android/log.h>
 
 using namespace std;
 
@@ -143,7 +144,7 @@ void writeHuffmanEncoded(vector<pair<int, int>>& RLEData,
                          const string& filename, CompressionSettings & settings) {
     ofstream outFile(filename, ios::binary);
     if (!outFile) {
-        cerr << "Error opening file for writing huffman encoded data!" << endl;
+        __android_log_print(ANDROID_LOG_ERROR, "Huffman", "Error opening file for writing huffman encoded data!");
         return;
     }
 
@@ -215,7 +216,7 @@ void writeHuffmanEncoded(vector<pair<int, int>>& RLEData,
             }
 
         }else{
-            std::cout << "pas de code valide pour le rle : " << rle.first << ", " << rle.second << std::endl;
+            __android_log_print(ANDROID_LOG_ERROR, "Huffman", "pas de code valide pour le rle : %d, %d", rle.first, rle.second);
         }
 
 
@@ -237,7 +238,7 @@ void readHuffmanEncoded(const string& filename,
                         int & channelYSize, int & channelCbSize, int & channelCrSize, CompressionSettings & settings) {
     ifstream inFile(filename, ios::binary);
     if (!inFile) {
-        cerr << "Error opening file for reading!" << endl;
+        __android_log_print(ANDROID_LOG_ERROR, "Huffman", "Error opening file for reading!");
         return;
     }
 

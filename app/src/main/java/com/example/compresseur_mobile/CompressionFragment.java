@@ -1,9 +1,14 @@
 package com.example.compresseur_mobile;
 
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +28,19 @@ import com.google.android.material.card.MaterialCardView;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
+class CompressionResult {
+    public byte[] compressedImage;
+    public int quality;
+    public int method;
+    public int width;
+    public int height;
+
+    public long oldSize;
+    public long newSize;
+    public float compressionRatio;
+    public float psnr;
+}
+
 public class CompressionFragment extends Fragment {
 
     static {
@@ -30,7 +48,7 @@ public class CompressionFragment extends Fragment {
     }
 
     public native String stringFromJNI();
-    public native void compressImageNative(byte[] imageBytes, int quality, int method);
+    public native CompressionResult compressImageNative(Context context, byte[] imageBytes, int quality, int method);
 
     private CompressionViewModel vm;
     private Uri imgURI;
@@ -141,27 +159,125 @@ public class CompressionFragment extends Fragment {
     }
 
     private void startCompression(){
+
+        bt_compress.setEnabled(false);
+        v_loading_overlay.setVisibility(View.VISIBLE);
+        cardLoading.setVisibility(View.VISIBLE);
+
+        new Thread(() -> { //thread obligatoire sinon crash car l'appli ne répond plus
+            try {
+                //lit les octets de l'image depuis l'URI
+                InputStream inputStream = requireContext().getContentResolver().openInputStream(imgURI);
+                ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                int nRead;
+                byte[] data = new byte[4096];
+                while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+                    buffer.write(data, 0, nRead);
+                }
+                buffer.flush();
+                byte[] imageBytes = buffer.toByteArray();
+
+                int method = getSelectedCompressionMethod();
+                int quality = qualityBar.getProgress();
+
+                //lance la compression en c++
+                CompressionResult result = compressImageNative(requireContext(), imageBytes, quality, method);
+
+                result.oldSize = imageBytes.length;
+                //result.newSize = 0;
+
+                requireActivity().runOnUiThread(() -> {
+                    if (result == null || result.compressedImage == null) {
+                        android.util.Log.d("CompressionFragment", "Return data/image is null !!");
+                    } else {
+                        android.util.Log.d("CompressionFragment", "Compression finished: quality=" + quality +
+                                ", method=" + method +
+                                ", oldSize=" + result.oldSize +
+                                ", newSize=" + result.newSize +
+                                ", result=[" + result.width + "x" + result.height + "], PSNR=" + result.psnr);
+
+
+                        result.compressionRatio = (float) result.oldSize / result.newSize;
+
+
+                        //for (int i = 0; i < 10 && result.compressedImage != null && i < result.compressedImage.length; i++) {
+                        //    android.util.Log.d("CompressionFragment", "compressedImage[" + i + "] = " + (result.compressedImage[i] ));
+                        //}
+
+                        displayCompressedImage(result);
+                    }
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+    }
+
+    //affiche l'image après compression
+    private void displayCompressedImage(CompressionResult result) {
+        if (result == null || result.compressedImage == null) {
+            android.util.Log.d("CompressionFragment", "Return data/image is null !!");
+            return;
+        }
+
+        android.util.Log.d("CompressionFragment", "converting and displaying compressed image");
+
+        Uri imageUri = byteArrayToUri(result);
+
+        vm.setResultUri(imageUri);
+        vm.setTaux( result.compressionRatio);
+        vm.setPsnr(result.psnr);
+        vm.setOldSize(result.oldSize);
+        vm.setNewSize(result.newSize);
+
+        requireActivity().getSupportFragmentManager().beginTransaction()
+                .replace(R.id.fragment_container, new ResultCompressionFragment())
+                .addToBackStack(null)
+                .commit();
+
+        v_loading_overlay.setVisibility(View.GONE);
+        cardLoading.setVisibility(View.GONE);
+        bt_compress.setEnabled(true);
+
+    }
+
+    //convertit le tableau d'octets en URI
+    private Uri byteArrayToUri(CompressionResult result){
         try {
-            InputStream inputStream = requireContext().getContentResolver().openInputStream(imgURI);
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            //lit les octets de l'image et convertit en tableau d'octets
-            int nRead;
-            byte[] data = new byte[4096];
-            while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
-                buffer.write(data, 0, nRead);
+
+            android.util.Log.d("CompressionFragment", "compressedImage length: " + (result.compressedImage != null ? result.compressedImage.length : "null"));
+
+            //on convertit le tableau d'octets rgb , j'ai pas trouve comment faire autrement
+            Bitmap bitmap = Bitmap.createBitmap(result.width, result.height, Bitmap.Config.ARGB_8888);
+
+            int[] rawData = new int[result.width * result.height];
+
+            for(int i = 0; i < result.width * result.height; i++){
+
+                int r = result.compressedImage[i*3] & 0xFF; // en java les byte sont forcemment signé ???? donc AND 0xFF pour passer de byte signé à int non signé,
+                int g = result.compressedImage[i*3+1] & 0xFF;
+                int b = result.compressedImage[i*3+2] & 0xFF;
+                rawData[i] = (0xFF << 24) | (r << 16) | (g << 8) | b; // alpha, red, green, blue
             }
 
-            buffer.flush();
-            byte[] imageBytes = buffer.toByteArray();
+            bitmap.setPixels(rawData, 0, result.width, 0, 0, result.width, result.height);
+            android.util.Log.d("CompressionFragment", "image decoded ");
 
-            int method = getSelectedCompressionMethod();
-            int quality = qualityBar.getProgress();
+            //on save l'image dans le cache en png juste pour pouvoir l'afficher
+            java.io.File tempFile = java.io.File.createTempFile("compressed", ".png", requireContext().getCacheDir());
+            java.io.FileOutputStream fos = new java.io.FileOutputStream(tempFile);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            fos.close();
 
-            compressImageNative(imageBytes, quality, method);
+            Uri uri = Uri.fromFile(tempFile);
+            return uri;
 
         } catch (Exception e) {
             e.printStackTrace();
+            return null;
         }
+
     }
 
     private void startFakeCompression() {
