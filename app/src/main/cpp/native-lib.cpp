@@ -5,6 +5,7 @@
 #include "ImageBase.h"
 #include "Utils.h"
 #include "JPEG.h"
+#include "JPEG2000.h"
 #include <vector>
 #include <android/log.h>
 
@@ -24,11 +25,14 @@ extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_example_compresseur_1mobile_CompressionFragment_compressImageNative(
         JNIEnv *env,
-    jobject thiz,
-    jobject context,
-    jbyteArray imageData,
-    jint quality,
-    jint method) {
+        jobject thiz,
+        jobject context,
+        jbyteArray imageData,
+        jint quality,
+        jint method,
+        jstring filename) {
+
+    __android_log_print(ANDROID_LOG_INFO, "Compression", "filename: %s", env->GetStringUTFChars(filename, nullptr));
 
     jsize length = env->GetArrayLength(imageData);
     jbyte *rawImageData = env->GetByteArrayElements(imageData, nullptr);
@@ -45,23 +49,44 @@ Java_com_example_compresseur_1mobile_CompressionFragment_compressImageNative(
 
     if (img) {
         //on charge l'image dans une ImageBase
+        ImageBase imTemp(width, height, true);
+
+        memcpy(imTemp.data, img, width * height * 3);
+
+        __android_log_print(ANDROID_LOG_INFO, "Compression", "Image loaded: %dx%d with %d channels", width, height, channels);
+
+        if(method == 1){
+            //on est obligé de faire des dimensions multiples de 16 pour la compression JPEG
+            if(width % 16 != 0){width += (16 - (width % 16));}
+            if(height % 16 != 0){height += (16 - (height % 16));}
+        }else if(method == 2){
+            //on est obligé de faire des dimensions multiples de 256 pour la compression JPEG2000
+            if(width % 256 != 0){width += (256 - (width % 256));}
+            if(height % 256 != 0){height += (256 - (height % 256));}
+        }
+
+
         ImageBase imIn(width, height, true);
 
-        memcpy(imIn.data, img, width * height * 3);
+        int oldWidth = imTemp.getWidth();
+        int oldHeight = imTemp.getHeight();
+
+        for (int y = 0; y < imIn.getHeight(); ++y) {
+            for (int x = 0; x < imIn.getWidth(); ++x) {
+                for (int c = 0; c < 3; ++c) {
+                    if (x < oldWidth && y < oldHeight) {
+                        imIn.data[(y * imIn.getWidth() + x) * 3 + c] = imTemp.data[(y * oldWidth + x) * 3 + c];
+                    } else {
+                        imIn.data[(y * imIn.getWidth() + x) * 3 + c] = 0;
+                    }
+                }
+            }
+        }
 
         __android_log_print(ANDROID_LOG_INFO, "Compression", "ImageBase %dx%d", imIn.getWidth(), imIn.getHeight());
 
-        //on initialise les paramètres de compression
-        CompressionSettings settings;
-        settings.colorFormat = YCBCRFORMAT;
-        settings.blurType = GAUSSIANBLUR;
-        settings.samplingType = BILENARSAMPLING;
-        settings.transformationType = DCTTRANSFORM;
-        settings.QuantizationFactor = quality;
-        settings.tileHeight = 8;
-        settings.tileWidth = 8;
-        settings.encodingType = RLE;
-        settings.encodingWindowSize = 20;
+
+
 
         //on recupere le contexte pour obtenir le répertoire de fichiers
         jclass contextClass = env->GetObjectClass(context);
@@ -73,15 +98,35 @@ Java_com_example_compresseur_1mobile_CompressionFragment_compressImageNative(
         jstring pathStr = (jstring)env->CallObjectMethod(filesDir, getPath);
         const char* dirPath = env->GetStringUTFChars(pathStr, nullptr);
 
-        std::string outputPath = std::string(dirPath) + "/output.compressed";
+        const char* filenameCStr = env->GetStringUTFChars(filename, nullptr);
+        std::string outputPath = std::string(dirPath) + "/" + filenameCStr;
+        env->ReleaseStringUTFChars(filename, filenameCStr);
+
+        __android_log_print(ANDROID_LOG_INFO, "Compression", "Output path: %s", outputPath.c_str());
 
         env->ReleaseStringUTFChars(pathStr, dirPath);
         env->DeleteLocalRef(pathStr);
+        /////
+        CompressionSettings settings;
+        if(method == 1) {
+            __android_log_print(ANDROID_LOG_INFO, "Compression", "Using JPEG compression");
 
-        //on compresse
-        compression("", outputPath.data(), imIn, settings); //first argument not used
+            settings = JPEGSettings;
+            settings.QuantizationFactor = quality;
+            compression("", outputPath.data(), imIn, settings); //first argument not used
+
+        } else {
+            __android_log_print(ANDROID_LOG_INFO, "Compression", "Using JPEG2000 compression");
+
+            settings = JPEG2000Settings;
+            settings.QuantizationFactor = quality;
+            compression2000("", outputPath.data(), imIn, settings);
+
+        }
 
         __android_log_print(ANDROID_LOG_INFO, "Compression", "Compression finished");
+
+
 
         //on affiche les fichiers dans le répertoire
         jmethodID listFiles = env->GetMethodID(fileClass, "listFiles", "()[Ljava/io/File;");
@@ -105,18 +150,37 @@ Java_com_example_compresseur_1mobile_CompressionFragment_compressImageNative(
         env->DeleteLocalRef(fileClass);
 
         stbi_image_free(img);
+        //////
 
-        __android_log_print(ANDROID_LOG_INFO, "Compression", "Starting decompression");
-
-        //on décompresse l'image pour pouvoir l'afficher
         ImageBase imOut(width, height, true);
+        if(method == 1) {
+            __android_log_print(ANDROID_LOG_INFO, "Compression", "Starting JPEG decompression");
+            decompression(outputPath.data(), "", imOut, settings);
+        } else {
+            __android_log_print(ANDROID_LOG_INFO, "Compression", "Starting JPEG2000 decompression");
+            decompression2000(outputPath.data() , "", imOut, settings);
+        }
 
-        decompression(outputPath.data(), "", imOut, settings);
+
+
+        //On recardre l'image à la taille d'origine
+        ImageBase imCropped(oldWidth, oldHeight, true);
+        for (int y = 0; y < oldHeight; ++y) {
+            for (int x = 0; x < oldWidth; ++x) {
+                for (int c = 0; c < 3; ++c) {
+                    imCropped.data[(y * oldWidth + x) * 3 + c] = imOut.data[(y * width + x) * 3 + c];
+                }
+            }
+        }
+
+        width = imCropped.getWidth();
+        height = imCropped.getHeight();
+
 
         //on convertit en tableau d'octets
         int dataLength = width * height * 3;
         jbyteArray rgbArray = env->NewByteArray(dataLength);
-        env->SetByteArrayRegion(rgbArray, 0, dataLength, reinterpret_cast<jbyte *>(imOut.data));
+        env->SetByteArrayRegion(rgbArray, 0, dataLength, reinterpret_cast<jbyte *>(imCropped.data));
 
         __android_log_print(ANDROID_LOG_INFO, "Compression", "Instantiating Results");
 
@@ -174,4 +238,19 @@ Java_com_example_compresseur_1mobile_CompressionFragment_compressImageNative(
 
 
     return nullptr;
+}
+
+extern "C"
+JNIEXPORT jobject JNICALL
+Java_com_example_compresseur_1mobile_CompressionFragment_decompressImageNative(
+        JNIEnv *env,
+        jobject thiz,
+        jobject context,
+        jbyteArray imageData,
+        jint quality,
+        jint method) {
+
+
+
+
 }

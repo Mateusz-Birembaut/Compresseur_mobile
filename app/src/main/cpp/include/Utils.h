@@ -66,6 +66,30 @@ struct CompressionSettings {
     }
 };
 
+const CompressionSettings JPEGSettings = {
+    YCBCRFORMAT,
+    GAUSSIANBLUR,
+    BILENARSAMPLING,
+    DCTTRANSFORM,
+    50,
+    8,
+    8,
+    RLE,
+    20
+};
+
+const CompressionSettings JPEG2000Settings = {
+    YCBCRFORMAT,
+    GAUSSIANBLUR,
+    BILENARSAMPLING,
+    DWTTRANSFORM,
+    50,
+    128,
+    128,
+    LZ77,
+    15
+};
+
 
 struct Block{
 

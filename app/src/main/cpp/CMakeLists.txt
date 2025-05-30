@@ -11,6 +11,7 @@ add_library(
         src/Huffman.cpp
         src/ImageBase.cpp
         src/JPEG.cpp
+        src/JPEG2000.cpp
         src/LZ77.cpp
         src/RLE.cpp
         src/TransformationQuantification.cpp

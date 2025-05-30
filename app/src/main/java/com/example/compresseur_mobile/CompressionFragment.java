@@ -2,12 +2,14 @@ package com.example.compresseur_mobile;
 
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.OpenableColumns;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -48,7 +50,7 @@ public class CompressionFragment extends Fragment {
     }
 
     public native String stringFromJNI();
-    public native CompressionResult compressImageNative(Context context, byte[] imageBytes, int quality, int method);
+    public native CompressionResult compressImageNative(Context context, byte[] imageBytes, int quality, int method, String imgName);
 
     private CompressionViewModel vm;
     private Uri imgURI;
@@ -158,6 +160,30 @@ public class CompressionFragment extends Fragment {
         return selectedId == R.id.rb_method_1 ? 1 : 2;
     }
 
+    // Récupère le nom du fichier à partir de l'URI
+    public String getFileNameFromUri(Context context, Uri uri) {
+        String result = null;
+        if (uri.getScheme().equals("content")) {
+            Cursor cursor = context.getContentResolver().query(uri, null, null, null, null);
+            try {
+                if (cursor != null && cursor.moveToFirst()) {
+                    result = cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME));
+                }
+            } finally {
+                if (cursor != null) cursor.close();
+            }
+        }
+
+        if (result == null) {
+            result = uri.getLastPathSegment();
+            if (result != null && result.contains("/")) {
+                result = result.substring(result.lastIndexOf("/") + 1);
+            }
+        }
+        return result;
+    }
+
+
     private void startCompression(){
 
         bt_compress.setEnabled(false);
@@ -180,8 +206,12 @@ public class CompressionFragment extends Fragment {
                 int method = getSelectedCompressionMethod();
                 int quality = qualityBar.getProgress();
 
+                String imgName = "image_" + System.currentTimeMillis() + ".compressed";
+
+                android.util.Log.d("CompressionFragment", "Starting compression with quality=" + quality +
+                        ", method=" + method + ", imgName=" + imgName);
                 //lance la compression en c++
-                CompressionResult result = compressImageNative(requireContext(), imageBytes, quality, method);
+                CompressionResult result = compressImageNative(requireContext(), imageBytes, quality, method, imgName);
 
                 result.oldSize = imageBytes.length;
                 //result.newSize = 0;
@@ -317,3 +347,5 @@ public class CompressionFragment extends Fragment {
     }
 
 }
+
+
