@@ -22,7 +22,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:padding="20dp"
-            android:text="Résultat"
+            android:text="@string/tv_result_result"
             android:textAlignment="center"
             android:textSize="30sp"
             android:textStyle="bold"
@@ -43,13 +43,13 @@
 
             <com.google.android.material.tabs.TabItem
                 android:id="@+id/tab_compressed"
-                android:text="Image compressée"
+                android:text="@string/img_result_compressed"
                 android:layout_height="0dp"
                 android:layout_width="0dp"/>
 
             <com.google.android.material.tabs.TabItem
                 android:id="@+id/tab_original"
-                android:text="Image originale"
+                android:text="@string/img_result_original"
                 android:layout_height="0dp"
                 android:layout_width="0dp"/>
 
@@ -59,7 +59,7 @@
             android:id="@+id/iv_img"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:contentDescription="Image"
+            android:contentDescription="@string/iv_result_img_desc"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHeight_percent="0.35"
             app:layout_constraintStart_toStartOf="parent"
@@ -87,7 +87,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingBottom="0dp"
-                    android:text="Informations"
+                    android:text="@string/tv_result_infos"
                     android:textAlignment="center"
                     android:textSize="25sp"
                     android:textStyle="bold" />
@@ -97,7 +97,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingBottom="0dp"
-                    android:text="Taux de compression"
+                    android:text="@string/tv_result_compression_rate"
                     android:textSize="18sp" />
 
                 <TextView
@@ -105,7 +105,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingBottom="0dp"
-                    android:text="PSNR"
+                    android:text="@string/tv_result_PSNR"
                     android:textSize="18sp"/>
 
                 <TextView
@@ -113,7 +113,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingBottom="0dp"
-                    android:text="Nouvelle taille"
+                    android:text="@string/tv_result_output_size"
                     android:textSize="18sp" />
 
                 <TextView
@@ -121,7 +121,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingBottom="0dp"
-                    android:text="Ancienne taille"
+                    android:text="@string/tv_result_input_size"
                     android:textSize="18sp" />
 
 
@@ -136,7 +136,7 @@
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
             android:backgroundTint="#2E2E2E"
-            android:text="Enregistrer"
+            android:text="@string/mb_result_save"
             android:textSize="20sp"
             app:cornerRadius="16dp"
             app:layout_constraintBottom_toBottomOf="parent"

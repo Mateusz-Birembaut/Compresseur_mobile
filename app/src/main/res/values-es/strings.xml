@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Compresor de imágenes</string>
+    <string name="tv_compression_loading">Compresión en curso...</string>
+    <string name="tv_title_compression">Compresor</string>
+    <string name="iv_compress_img_to_compress">Imagen para comprimir</string>
+    <string name="tv_compression_methods">Método de compresión</string>
+    <string name="rb_compression_method_1">Método 1: JPEG</string>
+    <string name="rb_compression_method_2">Método 2: JPEG2000</string>
+    <string name="tv_compression_quality">Factor de calidad</string>
+    <string name="bt_compress">Comprimir</string>
+    <string name="tv_menu_title">Menú</string>
+    <string name="tv_menu_select_photo_compression">Seleccionar una foto</string>
+    <string name="tv_menu_compression_desc">Elige una imagen en tu dispositivo para comprimir</string>
+    <string name="ib_compression_desc">Seleccionar imagen</string>
+    <string name="tv_menu_take_picture">Tomar una foto</string>
+    <string name="tv_menu_take_pic_desc">Toma una foto para comprimir</string>
+    <string name="ib_menu_take_pic_desc">Tomar foto</string>
+    <string name="tv_menu_decompress">Ver imagen</string>
+    <string name="tv_menu_decompress_desc">Selecciona una imagen comprimida para ver</string>
+    <string name="ib_menu_decompress_desc">Ver imagen</string>
+    <string name="tv_result_result">Resultado</string>
+    <string name="img_result_compressed">Imagen comprimida</string>
+    <string name="img_result_original">Imagen original</string>
+    <string name="iv_result_img_desc">Imagen</string>
+    <string name="tv_result_infos">Información</string>
+    <string name="tv_result_compression_rate">Tasa de compresión</string>
+    <string name="tv_result_output_size">Tamaño nuevo</string>
+    <string name="tv_result_input_size">Tamaño original</string>
+    <string name="mb_result_save">Guardar</string>
+</resources>

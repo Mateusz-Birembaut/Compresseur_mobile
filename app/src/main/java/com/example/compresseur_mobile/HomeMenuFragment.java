@@ -1,28 +1,40 @@
 package com.example.compresseur_mobile;
 
 
+import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.net.Uri;
 import android.os.Environment;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AutoCompleteTextView;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.core.os.LocaleListCompat;
 import androidx.fragment.app.Fragment;
+import androidx.preference.PreferenceManager;
 
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
+import java.util.Locale;
 
 
 public class HomeMenuFragment extends Fragment {
@@ -79,10 +91,10 @@ public class HomeMenuFragment extends Fragment {
         });
 
         btnTakeImg.setOnClickListener(v -> {
-            if (ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                 takePhoto();
             } else {
-                requestCameraPermission.launch(android.Manifest.permission.CAMERA);
+                requestCameraPermission.launch(Manifest.permission.CAMERA);
             }
         });
 
@@ -93,7 +105,57 @@ public class HomeMenuFragment extends Fragment {
         });
 
 
+
         return view;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        List<Language> langs = new ArrayList<>();
+        langs.add(new Language("fr", R.drawable.fr, getString(R.string.lang_fr)));
+        langs.add(new Language("en", R.drawable.gb, getString(R.string.lang_en)));
+        langs.add(new Language("es", R.drawable.es, getString(R.string.lang_es)));
+        langs.add(new Language("de", R.drawable.de, getString(R.string.lang_de)));
+        langs.add(new Language("pl", R.drawable.pl, getString(R.string.lang_pl)));
+        langs.add(new Language("pt", R.drawable.pt, getString(R.string.lang_pt)));
+
+        LanguageAdapter adapter = new LanguageAdapter(requireContext(), langs);
+        AutoCompleteTextView dropdown = view.findViewById(R.id.language_dropdown);
+        dropdown.setAdapter(adapter);
+        dropdown.setThreshold(0);
+        dropdown.setOnClickListener(v -> {
+            dropdown.showDropDown();
+        });
+
+        dropdown.setOnItemClickListener((parent, itemView, position, id) -> {
+            Language sel = adapter.getItem(position);
+            if (sel != null) {
+                androidx.preference.PreferenceManager
+                        .getDefaultSharedPreferences(requireContext())
+                        .edit()
+                        .putString("app_lang", sel.code)
+                        .apply();
+                AppCompatDelegate.setApplicationLocales(
+                        LocaleListCompat.forLanguageTags(sel.code)
+                );
+                dropdown.setText(sel.displayName, false);
+                dropdown.setCompoundDrawablesWithIntrinsicBounds(sel.flag, 0, 0, 0);
+
+            }
+        });
+
+        String current = androidx.preference.PreferenceManager
+                .getDefaultSharedPreferences(requireContext())
+                .getString("app_lang", Locale.getDefault().getLanguage());
+        for (int i = 0; i < langs.size(); i++) {
+            if (langs.get(i).code.equals(current)) {
+                dropdown.setText(langs.get(i).displayName, false);
+                dropdown.setCompoundDrawablesWithIntrinsicBounds(langs.get(i).flag, 0, 0, 0);
+                break;
+            }
+        }
+
     }
 
     private void takePhoto() {
