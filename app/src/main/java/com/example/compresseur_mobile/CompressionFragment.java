@@ -17,13 +17,20 @@ import android.widget.TextView;
 import androidx.activity.OnBackPressedCallback;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.card.MaterialCardView;
+
+import java.text.BreakIterator;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CompressionFragment extends Fragment {
 
     private CompressionViewModel vm;
     private Uri imgURI;
+    List<Uri> listeUris = new ArrayList<>();
     private SeekBar qualityBar;
     private RadioGroup compressionMethodsGroup;
     private MaterialCardView cardLoading;
@@ -47,7 +54,25 @@ public class CompressionFragment extends Fragment {
         bt_compress = view.findViewById(R.id.bt_compress);
         cardLoading = view.findViewById(R.id.card_loading);
         v_loading_overlay = view.findViewById(R.id.overlay_loading);
-        ImageView img = view.findViewById(R.id.iv_img);
+
+        RecyclerView rv = view.findViewById(R.id.rv_selected_images);
+
+        GridLayoutManager gridLayoutManager = new GridLayoutManager(requireContext(), 3);
+        rv.setLayoutManager(gridLayoutManager);
+
+        List<Uri> listeUris = new ArrayList<>();
+        SelectedImagesAdapter adapter = new SelectedImagesAdapter(requireContext(), listeUris,
+                uri -> {
+                    vm.setZoomUri(uri);
+                    requireActivity().getSupportFragmentManager()
+                            .beginTransaction()
+                            .replace(R.id.fragment_container, new ImageZoomFragment())
+                            .addToBackStack(null)
+                            .commit();
+                }
+        );
+        rv.setAdapter(adapter);
+
 
         requireActivity().getOnBackPressedDispatcher().addCallback(
                 getViewLifecycleOwner(),
@@ -55,6 +80,7 @@ public class CompressionFragment extends Fragment {
                     @Override
                     public void handleOnBackPressed() {
                         vm.clearResults();
+                        vm.clearImgUris();
                         requireActivity().getSupportFragmentManager()
                                 .beginTransaction()
                                 .replace(R.id.fragment_container, new HomeMenuFragment())
@@ -63,11 +89,11 @@ public class CompressionFragment extends Fragment {
                 }
         );
 
-        vm.getImgUri().observe(getViewLifecycleOwner(), uri -> {
-            if (uri != null) {
-                imgURI = uri;
-                img.setImageURI(uri);
-                img.setOnClickListener(v -> goToImgZoom());
+        vm.getImgUris().observe(getViewLifecycleOwner(), uris -> {
+            if (uris != null) {
+                listeUris.clear();
+                listeUris.addAll(uris);
+                adapter.notifyDataSetChanged();
             }
         });
 
@@ -87,19 +113,22 @@ public class CompressionFragment extends Fragment {
         });
 
         if (getArguments() != null) {
-            String imgUriString = getArguments().getString("img_uri");
-            if (imgUriString != null) vm.setImgUri(Uri.parse(imgUriString));
+            //String imgUriString = getArguments().getString("img_uri");
+            //if (imgUriString != null) vm.setImgUri(Uri.parse(imgUriString));
             int method = getArguments().getInt("selected_method", -1);
             if (method != -1) vm.setSelectedMethod(method);
             int quality = getArguments().getInt("quality", -1);
             if (quality != -1) vm.setQuality(quality);
         }
 
-        back.setOnClickListener(v -> requireActivity().getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, new HomeMenuFragment())
-                .commit()
-        );
+        back.setOnClickListener(v -> {
+            vm.clearResults();
+            vm.clearImgUris();
+            requireActivity().getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fragment_container, new HomeMenuFragment())
+                    .commit();
+        });
 
         qualityBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
@@ -142,11 +171,11 @@ public class CompressionFragment extends Fragment {
             long oldSize = 10_000_000;
             long newSize = 5_000_000;
 
-            vm.setResultUri(fakeResultUri);
-            vm.setTaux(fakeTaux);
-            vm.setPsnr(fakePSNR);
-            vm.setOldSize(oldSize);
-            vm.setNewSize(newSize);
+            //vm.setResultUri(fakeResultUri);
+            //vm.setTaux(fakeTaux);
+            //vm.setPsnr(fakePSNR);
+            //vm.setOldSize(oldSize);
+            //vm.setNewSize(newSize);
 
             requireActivity().getSupportFragmentManager().beginTransaction()
                     .replace(R.id.fragment_container, new ResultCompressionFragment())

@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.os.LocaleListCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
 import java.io.File;
@@ -40,7 +41,7 @@ import java.util.Locale;
 public class HomeMenuFragment extends Fragment {
 
     private ActivityResultLauncher<String> requestCameraPermission;
-    private ActivityResultLauncher<PickVisualMediaRequest> pickMedia;
+    private ActivityResultLauncher<PickVisualMediaRequest> pickMultipleMedia;
     private ActivityResultLauncher<Uri> takePicture;
     private Uri imgURI;
 
@@ -60,20 +61,26 @@ public class HomeMenuFragment extends Fragment {
                 }
         );
 
-        pickMedia = registerForActivityResult(new ActivityResultContracts.PickVisualMedia(), uri -> {
-            if (uri != null) {
-                imgURI = uri;
-                Log.d("PhotoPicker", "Selected URI: " + uri);
-                goToCompression();
-            } else {
-                Log.d("PhotoPicker", "No media selected");
-            }
-        });
+        pickMultipleMedia = registerForActivityResult(
+                new ActivityResultContracts.PickMultipleVisualMedia(9),
+                uris -> {
+                    if (uris != null && !uris.isEmpty()) {
+                        CompressionViewModel vm = new ViewModelProvider(requireActivity()).get(CompressionViewModel.class);
+                        vm.setImgUris(uris);
+                        goToCompressionMultiple();
+                    } else {
+                        Toast.makeText(requireContext(), "Aucune image sélectionnée", Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
 
         takePicture = registerForActivityResult(new ActivityResultContracts.TakePicture(), result -> {
             if (result) {
                 Log.d("PhotoPicker", "Photo taken successfully: " + imgURI);
-                goToCompression();
+                CompressionViewModel vm = new ViewModelProvider(requireActivity()).get(CompressionViewModel.class);
+                vm.clearImgUris();
+                vm.addImgUri(imgURI);
+                goToCompressionMultiple();
             } else {
                 Log.d("PhotoPicker", "Failed to take photo");
             }
@@ -85,9 +92,11 @@ public class HomeMenuFragment extends Fragment {
         ImageButton btnUploadImg = view.findViewById(R.id.btn_view_photo);
 
         btnChooseImg.setOnClickListener(v -> {
-            pickMedia.launch(new PickVisualMediaRequest.Builder()
-                    .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
-                    .build());
+            pickMultipleMedia.launch(
+                    new PickVisualMediaRequest.Builder()
+                            .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
+                            .build()
+            );
         });
 
         btnTakeImg.setOnClickListener(v -> {
@@ -99,9 +108,12 @@ public class HomeMenuFragment extends Fragment {
         });
 
         btnUploadImg.setOnClickListener(v -> {
+            /*
             pickMedia.launch(new PickVisualMediaRequest.Builder()
                     .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
                     .build());
+
+             */
         });
 
 
@@ -178,14 +190,12 @@ public class HomeMenuFragment extends Fragment {
         return File.createTempFile(imageFileName, ".jpg", storageDir);
     }
 
-    private void goToCompression() {
+
+    private void goToCompressionMultiple() {
         CompressionFragment compressionFragment = new CompressionFragment();
 
-        Bundle bundle = new Bundle();
-        bundle.putString("img_uri", imgURI.toString());
-        compressionFragment.setArguments(bundle);
-
-        requireActivity().getSupportFragmentManager().beginTransaction()
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
                 .replace(R.id.fragment_container, compressionFragment)
                 .commit();
     }
