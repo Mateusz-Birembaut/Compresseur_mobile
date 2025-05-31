@@ -87,9 +87,10 @@ public class HomeMenuFragment extends Fragment {
         });
 
         btnUploadImg.setOnClickListener(v -> {
-            pickMedia.launch(new PickVisualMediaRequest.Builder()
-                    .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
-                    .build());
+            requireActivity().getSupportFragmentManager().beginTransaction()
+                                .replace(R.id.fragment_container, new CompressedFileListFragment())
+                                .addToBackStack(null)
+                                .commit();
         });
 
 

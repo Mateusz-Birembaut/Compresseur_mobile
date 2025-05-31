@@ -30,18 +30,7 @@ import com.google.android.material.card.MaterialCardView;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
-class CompressionResult {
-    public byte[] compressedImage;
-    public int quality;
-    public int method;
-    public int width;
-    public int height;
-
-    public long oldSize;
-    public long newSize;
-    public float compressionRatio;
-    public float psnr;
-}
+import com.example.compresseur_mobile.CompressionResult;
 
 public class CompressionFragment extends Fragment {
 
@@ -51,6 +40,8 @@ public class CompressionFragment extends Fragment {
 
     public native String stringFromJNI();
     public native CompressionResult compressImageNative(Context context, byte[] imageBytes, int quality, int method, String imgName);
+
+    public static native CompressionResult decompressImageNative(Context context, String filePath);
 
     private CompressionViewModel vm;
     private Uri imgURI;
@@ -253,7 +244,7 @@ public class CompressionFragment extends Fragment {
 
         android.util.Log.d("CompressionFragment", "converting and displaying compressed image");
 
-        Uri imageUri = byteArrayToUri(result);
+        Uri imageUri = byteArrayToUri(result, requireContext());
 
         vm.setResultUri(imageUri);
         vm.setTaux( result.compressionRatio);
@@ -273,7 +264,7 @@ public class CompressionFragment extends Fragment {
     }
 
     //convertit le tableau d'octets en URI
-    private Uri byteArrayToUri(CompressionResult result){
+    public static Uri byteArrayToUri(CompressionResult result, Context context){
         try {
 
             android.util.Log.d("CompressionFragment", "compressedImage length: " + (result.compressedImage != null ? result.compressedImage.length : "null"));
@@ -295,7 +286,7 @@ public class CompressionFragment extends Fragment {
             android.util.Log.d("CompressionFragment", "image decoded ");
 
             //on save l'image dans le cache en png juste pour pouvoir l'afficher
-            java.io.File tempFile = java.io.File.createTempFile("compressed", ".png", requireContext().getCacheDir());
+            java.io.File tempFile = java.io.File.createTempFile("compressed", ".png", context.getCacheDir());
             java.io.FileOutputStream fos = new java.io.FileOutputStream(tempFile);
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
             fos.close();

@@ -213,4 +213,4 @@ float PSNRptr(ImageBase & im1, ImageBase * im2);
 
 long getFileSize(const std::string& filePath);
 
-void readSettings(const std::string& filename, CompressionSettings& settings);
+void readSettings(const std::string& filename, CompressionSettings& settings, int *width = nullptr, int *height = nullptr);
