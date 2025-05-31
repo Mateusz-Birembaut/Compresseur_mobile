@@ -11,8 +11,11 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.card.MaterialCardView;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,6 +53,7 @@ public class SelectedImagesResultAdapter extends RecyclerView.Adapter<SelectedIm
     static class ViewHolder extends RecyclerView.ViewHolder {
         final ImageView imgThumb;
         final View container;
+
         ViewHolder(View itemView) {
             super(itemView);
             container = itemView;
@@ -75,17 +79,21 @@ public class SelectedImagesResultAdapter extends RecyclerView.Adapter<SelectedIm
             holder.imgThumb.setImageBitmap(rotated);
         }
 
+        MaterialCardView card = (MaterialCardView) holder.container;
+
         if (position == selectedPosition) {
-            holder.container.setBackgroundResource(R.drawable.bg_selected_thumbnail);
+            card.setStrokeWidth(3);
+            card.setStrokeColor(
+                    ContextCompat.getColor(context, R.color.black)
+            );
         } else {
-            holder.container.setBackground(null);
+            card.setStrokeWidth(0);
         }
 
-
+        //appuie court
         holder.imgThumb.setOnClickListener(v -> {
             int prev = selectedPosition;
             selectedPosition = holder.getAdapterPosition();
-
             if (prev != RecyclerView.NO_POSITION) {
                 notifyItemChanged(prev);
             }
@@ -96,6 +104,7 @@ public class SelectedImagesResultAdapter extends RecyclerView.Adapter<SelectedIm
             }
         });
 
+        //appuie long
         holder.imgThumb.setOnLongClickListener(v -> {
             if (longClickListener != null) {
                 longClickListener.onItemLongClick(uri, holder.getAdapterPosition());

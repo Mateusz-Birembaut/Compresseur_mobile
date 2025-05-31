@@ -1,20 +1,27 @@
 package com.example.compresseur_mobile;
 
+import android.content.Context;
+import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.OpenableColumns;
+import android.support.media.ExifInterface;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -22,20 +29,44 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.card.MaterialCardView;
 
-import java.text.BreakIterator;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+class CompressionResult {
+    public byte[] compressedImage;
+    public int quality;
+    public int method;
+    public int width;
+    public int height;
+
+    public long oldSize;
+    public long newSize;
+    public float compressionRatio;
+    public float psnr;
+}
+
 public class CompressionFragment extends Fragment {
 
+    static {
+        System.loadLibrary("native-lib");
+    }
+
+    public native String stringFromJNI();
+    public native CompressionResult compressImageNative(Context context, byte[] imageBytes, int quality, int method, String imgName);
+
     private CompressionViewModel vm;
-    private Uri imgURI;
-    List<Uri> listeUris = new ArrayList<>();
     private SeekBar qualityBar;
     private RadioGroup compressionMethodsGroup;
     private MaterialCardView cardLoading;
     private Button bt_compress;
     private View v_loading_overlay;
+
+    private List<Uri> listeUris = new ArrayList<>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -44,7 +75,7 @@ public class CompressionFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.compression, container, false);
 
         compressionMethodsGroup = view.findViewById(R.id.rg_compression_methods);
@@ -56,11 +87,9 @@ public class CompressionFragment extends Fragment {
         v_loading_overlay = view.findViewById(R.id.overlay_loading);
 
         RecyclerView rv = view.findViewById(R.id.rv_selected_images);
-
         GridLayoutManager gridLayoutManager = new GridLayoutManager(requireContext(), 3);
         rv.setLayoutManager(gridLayoutManager);
 
-        List<Uri> listeUris = new ArrayList<>();
         SelectedImagesAdapter adapter = new SelectedImagesAdapter(requireContext(), listeUris,
                 uri -> {
                     vm.setZoomUri(uri);
@@ -72,7 +101,6 @@ public class CompressionFragment extends Fragment {
                 }
         );
         rv.setAdapter(adapter);
-
 
         requireActivity().getOnBackPressedDispatcher().addCallback(
                 getViewLifecycleOwner(),
@@ -90,11 +118,11 @@ public class CompressionFragment extends Fragment {
         );
 
         vm.getImgUris().observe(getViewLifecycleOwner(), uris -> {
+            listeUris.clear();
             if (uris != null) {
-                listeUris.clear();
                 listeUris.addAll(uris);
-                adapter.notifyDataSetChanged();
             }
+            adapter.notifyDataSetChanged();
         });
 
         vm.getSelectedMethod().observe(getViewLifecycleOwner(), method -> {
@@ -113,12 +141,14 @@ public class CompressionFragment extends Fragment {
         });
 
         if (getArguments() != null) {
-            //String imgUriString = getArguments().getString("img_uri");
-            //if (imgUriString != null) vm.setImgUri(Uri.parse(imgUriString));
             int method = getArguments().getInt("selected_method", -1);
-            if (method != -1) vm.setSelectedMethod(method);
+            if (method != -1) {
+                vm.setSelectedMethod(method);
+            }
             int quality = getArguments().getInt("quality", -1);
-            if (quality != -1) vm.setQuality(quality);
+            if (quality != -1) {
+                vm.setQuality(quality);
+            }
         }
 
         back.setOnClickListener(v -> {
@@ -131,66 +161,182 @@ public class CompressionFragment extends Fragment {
         });
 
         qualityBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 qualityValue.setText(String.valueOf(progress));
             }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) {}
-            @Override public void onStopTrackingTouch(SeekBar seekBar) {}
+            @Override public void onStartTrackingTouch(SeekBar seekBar) { }
+            @Override public void onStopTrackingTouch(SeekBar seekBar) { }
         });
 
-        bt_compress.setOnClickListener(v -> startFakeCompression());
+        bt_compress.setOnClickListener(v -> startCompressionMultiple());
 
         return view;
     }
 
-    private void goToImgZoom() {
-        vm.setSelectedMethod(getSelectedCompressionMethod());
-        vm.setQuality(qualityBar.getProgress());
-        vm.setZoomUri(imgURI);
 
-        requireActivity().getSupportFragmentManager().beginTransaction()
-                .replace(R.id.fragment_container, new ImageZoomFragment())
-                .addToBackStack(null)
-                .commit();
-    }
+    private void startCompressionMultiple() {
+        if (listeUris.isEmpty()) {
+            return;
+        }
 
-    private int getSelectedCompressionMethod() {
-        int selectedId = compressionMethodsGroup.getCheckedRadioButtonId();
-        return selectedId == R.id.rb_method_1 ? 1 : 2;
-    }
-
-    private void startFakeCompression() {
         bt_compress.setEnabled(false);
         v_loading_overlay.setVisibility(View.VISIBLE);
         cardLoading.setVisibility(View.VISIBLE);
 
-        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            Uri fakeResultUri = uriFromDrawable(R.drawable.bt_arrow_back);
-            int fakeTaux = 2;
-            int fakePSNR = 40;
-            long oldSize = 10_000_000;
-            long newSize = 5_000_000;
+        vm.clearResults();
 
-            //vm.setResultUri(fakeResultUri);
-            //vm.setTaux(fakeTaux);
-            //vm.setPsnr(fakePSNR);
-            //vm.setOldSize(oldSize);
-            //vm.setNewSize(newSize);
+        final int selectedMethod  = getSelectedCompressionMethod();
+        final int selectedQuality = qualityBar.getProgress();
 
-            requireActivity().getSupportFragmentManager().beginTransaction()
-                    .replace(R.id.fragment_container, new ResultCompressionFragment())
-                    .addToBackStack(null)
-                    .commit();
+        //thread pour separer ui / calcul
+        new Thread(() -> {
+            for (int idx = 0; idx < listeUris.size(); idx++) {
+                Uri currentUri = listeUris.get(idx);
 
-            v_loading_overlay.setVisibility(View.GONE);
-            cardLoading.setVisibility(View.GONE);
-            bt_compress.setEnabled(true);
-        }, 2000);
+                int rotation = getExifRotation(currentUri);
+
+                try {
+                    InputStream inputStream = requireContext()
+                            .getContentResolver()
+                            .openInputStream(currentUri);
+
+                    ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                    int nRead;
+                    byte[] data = new byte[4096];
+                    while ((nRead = inputStream.read(data, 0, data.length)) != -1) {
+                        buffer.write(data, 0, nRead);
+                    }
+                    buffer.flush();
+                    byte[] imageBytes = buffer.toByteArray();
+                    long oldSize = imageBytes.length;
+
+                    String imgName = "image_multi_" + System.currentTimeMillis() + "_" + idx + ".compressed";
+
+                    CompressionResult result = compressImageNative(
+                            requireContext(),
+                            imageBytes,
+                            selectedQuality,
+                            selectedMethod,
+                            imgName
+                    );
+
+                    if (result == null || result.compressedImage == null) {
+                        Log.e("CompressionFragment", "Compression native null pour URI " + currentUri);
+                        continue;
+                    }
+
+
+                    result.oldSize = oldSize;
+                    result.compressionRatio = (float) result.oldSize / result.newSize;
+
+                    Uri compressedUri = byteArrayToUri(result, rotation);
+                    if (compressedUri == null) {
+                        Log.e("CompressionFragment", "Impossible de créer l'URI de sortie pour l'image #" + idx);
+                        continue;
+                    }
+
+                    vm.addResultUri(compressedUri);
+                    vm.addTaux(result.compressionRatio);
+                    vm.addPsnr(result.psnr);
+                    vm.addOldSize(result.oldSize);
+                    vm.addNewSize(result.newSize);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            new Handler(Looper.getMainLooper()).post(() -> {
+                v_loading_overlay.setVisibility(View.GONE);
+                cardLoading.setVisibility(View.GONE);
+                bt_compress.setEnabled(true);
+
+                requireActivity().getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.fragment_container, new ResultCompressionFragment())
+                        .addToBackStack(null)
+                        .commit();
+            });
+        }).start();
     }
 
-    private Uri uriFromDrawable(int resId) {
-        return Uri.parse("android.resource://" +
-                requireContext().getPackageName() + "/" + resId);
+
+    private int getSelectedCompressionMethod() {
+        int selectedId = compressionMethodsGroup.getCheckedRadioButtonId();
+        return (selectedId == R.id.rb_method_1) ? 1 : 2;
     }
+
+
+    private Uri byteArrayToUri(CompressionResult result, int rotation) {
+        try {
+            Bitmap bitmap = Bitmap.createBitmap(
+                    result.width,
+                    result.height,
+                    Bitmap.Config.ARGB_8888
+            );
+            int totalPixels = result.width * result.height;
+            int[] rawData = new int[totalPixels];
+            for (int i = 0; i < totalPixels; i++) {
+                int r = result.compressedImage[i * 3] & 0xFF;
+                int g = result.compressedImage[i * 3 + 1] & 0xFF;
+                int b = result.compressedImage[i * 3 + 2] & 0xFF;
+                rawData[i] = (0xFF << 24) | (r << 16) | (g << 8) | b;
+            }
+            bitmap.setPixels(rawData, 0, result.width, 0, 0, result.width, result.height);
+
+            // rotation sinon les images de l'appareil sont pas dans le bon sens
+            Bitmap rotatedBitmap = bitmap;
+            if (rotation != 0) {
+                Matrix matrix = new Matrix();
+                matrix.postRotate(rotation);
+                rotatedBitmap = Bitmap.createBitmap(
+                        bitmap,
+                        0, 0,
+                        bitmap.getWidth(),
+                        bitmap.getHeight(),
+                        matrix,
+                        true
+                );
+                bitmap.recycle();
+            }
+
+            File tempFile = File.createTempFile("compressed_rotated_", ".png", requireContext().getCacheDir());
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                rotatedBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            }
+            return Uri.fromFile(tempFile);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private int getExifRotation(@NonNull Uri uri) {
+        try (InputStream is = requireContext().getContentResolver().openInputStream(uri)) {
+            if (is == null) {
+                return 0;
+            }
+            ExifInterface exif = new ExifInterface(is);
+            int orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+            );
+            switch (orientation) {
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    return 90;
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    return 180;
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    return 270;
+                default:
+                    return 0;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
 
 }

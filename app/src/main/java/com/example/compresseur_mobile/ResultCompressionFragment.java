@@ -1,8 +1,11 @@
 package com.example.compresseur_mobile;
 
+import static android.content.ContentValues.TAG;
+
 import android.annotation.SuppressLint;
 import android.net.Uri;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -132,24 +135,37 @@ public class ResultCompressionFragment extends Fragment {
             if (resultUris != null) {
                 compressedUris.clear();
                 compressedUris.addAll(resultUris);
-                if (!compressedUris.isEmpty() && selectedIndex < compressedUris.size()) {
-                    compressedAdapter.setSelectedPosition(selectedIndex);
+                compressedAdapter.notifyDataSetChanged();
+                if (!compressedUris.isEmpty()) {
+                    selectedIndex = 0;
+                    compressedAdapter.setSelectedPosition(0);
                 }
+                updateInfoCard();
             }
         });
         vm.getImgUris().observe(getViewLifecycleOwner(), originalList -> {
             if (originalList != null) {
                 originalUris.clear();
                 originalUris.addAll(originalList);
-                if (!originalUris.isEmpty() && selectedIndex < originalUris.size()) {
-                    originalAdapter.setSelectedPosition(selectedIndex);
+                originalAdapter.notifyDataSetChanged();
+                if (!originalUris.isEmpty()) {
+                    selectedIndex = 0;
+                    originalAdapter.setSelectedPosition(0);
                 }
+                updateInfoCard();
             }
         });
-        vm.getTauxList().observe(getViewLifecycleOwner(), taux -> updateInfoCard());
+
+        vm.getTauxList().observe(getViewLifecycleOwner(), tauxList -> {
+            if (tauxList != null && selectedIndex < tauxList.size()) {
+                updateInfoCard();
+            }
+        });
         vm.getPsnrList().observe(getViewLifecycleOwner(), psnr -> updateInfoCard());
         vm.getOldSizes().observe(getViewLifecycleOwner(), oldS -> updateInfoCard());
         vm.getNewSizes().observe(getViewLifecycleOwner(), newS -> updateInfoCard());
+
+
 
         // ––––– TABS –––––
         tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
@@ -178,10 +194,11 @@ public class ResultCompressionFragment extends Fragment {
         return view;
     }
 
+
     @SuppressLint("SetTextI18n")
     private void updateInfoCard() {
-        List<Integer> tauxList   = vm.getTauxList().getValue();
-        List<Integer> psnrList   = vm.getPsnrList().getValue();
+        List<Float> tauxList   = vm.getTauxList().getValue();
+        List<Float> psnrList   = vm.getPsnrList().getValue();
         List<Long> oldSizes      = vm.getOldSizes().getValue();
         List<Long> newSizes      = vm.getNewSizes().getValue();
 

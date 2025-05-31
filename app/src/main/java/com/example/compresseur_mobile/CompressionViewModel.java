@@ -18,8 +18,8 @@ public class CompressionViewModel extends ViewModel {
     private final MutableLiveData<Integer> quality = new MutableLiveData<>();
 
     private final MutableLiveData<List<Uri>> resultUris = new MutableLiveData<>(new ArrayList<>());
-    private final MutableLiveData<List<Integer>> tauxList = new MutableLiveData<>(new ArrayList<>());
-    private final MutableLiveData<List<Integer>> psnrList = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<List<Float>> tauxList = new MutableLiveData<>(new ArrayList<>());
+    private final MutableLiveData<List<Float>> psnrList = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<List<Long>> oldSizes    = new MutableLiveData<>(new ArrayList<>());
     private final MutableLiveData<List<Long>> newSizes    = new MutableLiveData<>(new ArrayList<>());
 
@@ -27,9 +27,9 @@ public class CompressionViewModel extends ViewModel {
 
     private final MutableLiveData<Uri> zoomUri = new MutableLiveData<>();
 
-    public void setSelectedMethod(int method) { selectedMethod.setValue(method); }
+    public void setSelectedMethod(int method) { selectedMethod.postValue(method); }
     public LiveData<Integer> getSelectedMethod() { return selectedMethod; }
-    public void setQuality(int q) { quality.setValue(q); }
+    public void setQuality(int q) { quality.postValue(q); }
     public LiveData<Integer> getQuality() { return quality; }
 
     public LiveData<List<Uri>> getResultUris() {
@@ -39,27 +39,27 @@ public class CompressionViewModel extends ViewModel {
         List<Uri> current = resultUris.getValue();
         if (current == null) current = new ArrayList<>();
         current.add(uri);
-        resultUris.setValue(current);
+        resultUris.postValue(current);
     }
 
-    public LiveData<List<Integer>> getTauxList() {
+    public LiveData<List<Float>> getTauxList() {
         return tauxList;
     }
-    public void addTaux(int t) {
-        List<Integer> current = tauxList.getValue();
+    public void addTaux(float t) {
+        List<Float> current = tauxList.getValue();
         if (current == null) current = new ArrayList<>();
         current.add(t);
-        tauxList.setValue(current);
+        tauxList.postValue(current);
     }
 
-    public LiveData<List<Integer>> getPsnrList() {
+    public LiveData<List<Float>> getPsnrList() {
         return psnrList;
     }
-    public void addPsnr(int p) {
-        List<Integer> current = psnrList.getValue();
+    public void addPsnr(float p) {
+        List<Float> current = psnrList.getValue();
         if (current == null) current = new ArrayList<>();
         current.add(p);
-        psnrList.setValue(current);
+        psnrList.postValue(current);
     }
 
     public LiveData<List<Long>> getOldSizes() {
@@ -69,7 +69,7 @@ public class CompressionViewModel extends ViewModel {
         List<Long> current = oldSizes.getValue();
         if (current == null) current = new ArrayList<>();
         current.add(s);
-        oldSizes.setValue(current);
+        oldSizes.postValue(current);
     }
 
     public LiveData<List<Long>> getNewSizes() {
@@ -79,36 +79,37 @@ public class CompressionViewModel extends ViewModel {
         List<Long> current = newSizes.getValue();
         if (current == null) current = new ArrayList<>();
         current.add(s);
-        newSizes.setValue(current);
+        newSizes.postValue(current);
     }
 
-    // Quand on veut tout réinitialiser (image, résultats, etc.)
+
     public void clearResults() {
-        resultUris.setValue(new ArrayList<>());
-        tauxList.setValue(new ArrayList<>());
-        psnrList.setValue(new ArrayList<>());
-        oldSizes.setValue(new ArrayList<>());
-        newSizes.setValue(new ArrayList<>());
-        zoomUri.setValue(null);
+        resultUris.postValue(new ArrayList<>());
+        tauxList.postValue(new ArrayList<>());
+        psnrList.postValue(new ArrayList<>());
+        oldSizes.postValue(new ArrayList<>());
+        newSizes.postValue(new ArrayList<>());
+        zoomUri.postValue(null);
     }
     public LiveData<Integer> getSelectedTab() {return selectedTab;}
-    public void setSelectedTab(int index) { selectedTab.setValue(index); }
+    public void setSelectedTab(int index) { selectedTab.postValue(index); }
 
     public void addImgUri(Uri uri) {
         List<Uri> copy = new ArrayList<>(imgUris.getValue());
         copy.add(uri);
-        imgUris.setValue(copy);
+        imgUris.postValue(copy);
     }
 
     public void setImgUris(List<Uri> uris) {
         List<Uri> copy = new ArrayList<>(uris);
-        imgUris.setValue(copy);
+        imgUris.postValue(copy);
     }
-    public void clearImgUris() { imgUris.setValue(new ArrayList<>()); }
+    public void clearImgUris() { imgUris.postValue(new ArrayList<>()); }
     public LiveData<List<Uri>> getImgUris() { return imgUris; }
 
     public LiveData<Uri> getZoomUri()   { return zoomUri; }
-    public void setZoomUri(Uri uri)     { zoomUri.setValue(uri); }
+    public void setZoomUri(Uri uri)     { zoomUri.postValue(uri); }
+
 
 
 }
