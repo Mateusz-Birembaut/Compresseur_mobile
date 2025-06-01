@@ -27,7 +27,7 @@
     <string name="tv_result_PSNR" translatable="false">PSNR</string>
     <string name="tv_result_output_size">Nouvelle taille</string>
     <string name="tv_result_input_size">Ancienne taille</string>
-    <string name="mb_result_save">Enregistrer</string>
+    <string name="mb_result_save">Retour au menu</string>
     <string name="lang_fr" translatable="false">Français</string>
     <string name="lang_en" translatable="false">English</string>
     <string name="lang_es" translatable="false">Español</string>

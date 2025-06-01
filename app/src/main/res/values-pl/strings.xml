@@ -27,5 +27,5 @@
     <string name="tv_result_compression_rate">Stopień kompresji</string>
     <string name="tv_result_output_size">Nowy rozmiar</string>
     <string name="tv_result_input_size">Oryginalny rozmiar</string>
-    <string name="mb_result_save">"Zapisz "</string>
+    <string name="mb_result_save">Powrót do menu</string>
 </resources>

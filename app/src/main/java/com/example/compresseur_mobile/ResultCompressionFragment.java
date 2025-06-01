@@ -6,14 +6,13 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
@@ -32,7 +31,7 @@ public class ResultCompressionFragment extends Fragment {
     private TabLayout tabLayout;
     private RecyclerView rvCompressed, rvOriginal;
     private TextView tvTaux, tvPsnr, tvOldSize, tvNewSize;
-    private ImageButton btBack;
+
     private int selectedIndex = 0;
 
     private SelectedImagesResultAdapter compressedAdapter;
@@ -46,12 +45,15 @@ public class ResultCompressionFragment extends Fragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater,
-                             @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.result_compression, container, false);
 
+        ImageButton btBack;
+        Button btQuit;
+
         btBack = view.findViewById(R.id.bt_back_to_menu);
+        btQuit = view.findViewById(R.id.mb_result_quit);
+
         tabLayout = view.findViewById(R.id.tab_layout_images);
 
         rvCompressed = view.findViewById(R.id.rv_compressed);
@@ -61,6 +63,8 @@ public class ResultCompressionFragment extends Fragment {
         tvPsnr    = view.findViewById(R.id.tv_psnr);
         tvOldSize = view.findViewById(R.id.tv_old_size);
         tvNewSize = view.findViewById(R.id.tv_new_size);
+
+        btQuit.setOnClickListener(v -> goToMainMenu());
 
         // ––––– BACK BUTTON –––––
         requireActivity().getOnBackPressedDispatcher().addCallback(
@@ -180,10 +184,10 @@ public class ResultCompressionFragment extends Fragment {
 
     @SuppressLint("SetTextI18n")
     private void updateInfoCard() {
-        List<Integer> tauxList   = vm.getTauxList().getValue();
-        List<Integer> psnrList   = vm.getPsnrList().getValue();
-        List<Long> oldSizes      = vm.getOldSizes().getValue();
-        List<Long> newSizes      = vm.getNewSizes().getValue();
+        List<Integer> tauxList = vm.getTauxList().getValue();
+        List<Integer> psnrList = vm.getPsnrList().getValue();
+        List<Long> oldSizes = vm.getOldSizes().getValue();
+        List<Long> newSizes = vm.getNewSizes().getValue();
 
         DecimalFormat df = new DecimalFormat("#,##0");
 
@@ -218,4 +222,17 @@ public class ResultCompressionFragment extends Fragment {
             tvNewSize.setText(getString(R.string.tv_result_output_size) + " : -");
         }
     }
+
+    void goToMainMenu(){
+        HomeMenuFragment homeMenuFragment = new HomeMenuFragment();
+
+        vm.clearResults();
+        vm.clearImgUris();
+
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, homeMenuFragment)
+                .commit();
+    }
+
 }

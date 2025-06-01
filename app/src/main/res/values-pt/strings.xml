@@ -27,5 +27,5 @@
     <string name="tv_result_compression_rate">Taxa de compactação</string>
     <string name="tv_result_output_size">Novo tamanho</string>
     <string name="tv_result_input_size">Tamanho original</string>
-    <string name="mb_result_save">Salvar</string>
+    <string name="mb_result_save">Voltar ao menu</string>
 </resources>
