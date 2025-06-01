@@ -1,6 +1,7 @@
 package com.example.compresseur_mobile;
 
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
@@ -16,6 +17,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -37,18 +39,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-class CompressionResult {
-    public byte[] compressedImage;
-    public int quality;
-    public int method;
-    public int width;
-    public int height;
-
-    public long oldSize;
-    public long newSize;
-    public float compressionRatio;
-    public float psnr;
-}
+import com.example.compresseur_mobile.CompressionResult;
 
 public class CompressionFragment extends Fragment {
 
@@ -57,9 +48,13 @@ public class CompressionFragment extends Fragment {
     }
 
     public native String stringFromJNI();
+
     public native CompressionResult compressImageNative(Context context, byte[] imageBytes, int quality, int method, String imgName);
 
+    public static native CompressionResult decompressImageNative(Context context, String filePath);
+
     private CompressionViewModel vm;
+    private Uri imgURI;
     private SeekBar qualityBar;
     private RadioGroup compressionMethodsGroup;
     private MaterialCardView cardLoading;
@@ -165,8 +160,14 @@ public class CompressionFragment extends Fragment {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 qualityValue.setText(String.valueOf(progress));
             }
-            @Override public void onStartTrackingTouch(SeekBar seekBar) { }
-            @Override public void onStopTrackingTouch(SeekBar seekBar) { }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
         });
 
         bt_compress.setOnClickListener(v -> startCompressionMultiple());
@@ -186,7 +187,7 @@ public class CompressionFragment extends Fragment {
 
         vm.clearResults();
 
-        final int selectedMethod  = getSelectedCompressionMethod();
+        final int selectedMethod = getSelectedCompressionMethod();
         final int selectedQuality = qualityBar.getProgress();
 
         //thread pour separer ui / calcul
@@ -194,7 +195,7 @@ public class CompressionFragment extends Fragment {
             for (int idx = 0; idx < listeUris.size(); idx++) {
                 Uri currentUri = listeUris.get(idx);
 
-                int rotation = getExifRotation(currentUri);
+                int rotation = getExifRotation(currentUri, requireContext());
 
                 try {
                     InputStream inputStream = requireContext()
@@ -213,13 +214,7 @@ public class CompressionFragment extends Fragment {
 
                     String imgName = "image_multi_" + System.currentTimeMillis() + "_" + idx + ".compressed";
 
-                    CompressionResult result = compressImageNative(
-                            requireContext(),
-                            imageBytes,
-                            selectedQuality,
-                            selectedMethod,
-                            imgName
-                    );
+                    CompressionResult result = compressImageNative(requireContext(), imageBytes, selectedQuality, selectedMethod, imgName);
 
                     if (result == null || result.compressedImage == null) {
                         Log.e("CompressionFragment", "Compression native null pour URI " + currentUri);
@@ -230,7 +225,7 @@ public class CompressionFragment extends Fragment {
                     result.oldSize = oldSize;
                     result.compressionRatio = (float) result.oldSize / result.newSize;
 
-                    Uri compressedUri = byteArrayToUri(result, rotation);
+                    Uri compressedUri = byteArrayToUri(result, rotation, getContext());
                     if (compressedUri == null) {
                         Log.e("CompressionFragment", "Impossible de créer l'URI de sortie pour l'image #" + idx);
                         continue;
@@ -266,8 +261,8 @@ public class CompressionFragment extends Fragment {
         return (selectedId == R.id.rb_method_1) ? 1 : 2;
     }
 
-
-    private Uri byteArrayToUri(CompressionResult result, int rotation) {
+    //convertit le tableau d'octets en URI
+    public static Uri byteArrayToUri(CompressionResult result, int rotation , Context context) {
         try {
             Bitmap bitmap = Bitmap.createBitmap(
                     result.width,
@@ -300,7 +295,7 @@ public class CompressionFragment extends Fragment {
                 bitmap.recycle();
             }
 
-            File tempFile = File.createTempFile("compressed_rotated_", ".png", requireContext().getCacheDir());
+            java.io.File tempFile = java.io.File.createTempFile("compressed", ".png", context.getCacheDir());
             try (FileOutputStream fos = new FileOutputStream(tempFile)) {
                 rotatedBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
             }
@@ -310,10 +305,11 @@ public class CompressionFragment extends Fragment {
             e.printStackTrace();
             return null;
         }
+
     }
 
-    private int getExifRotation(@NonNull Uri uri) {
-        try (InputStream is = requireContext().getContentResolver().openInputStream(uri)) {
+    public static int getExifRotation(@NonNull Uri uri, Context context) {
+        try (InputStream is = context.getContentResolver().openInputStream(uri)) {
             if (is == null) {
                 return 0;
             }
@@ -337,6 +333,6 @@ public class CompressionFragment extends Fragment {
             return 0;
         }
     }
-
-
 }
+
+

@@ -82,7 +82,7 @@
                 android:id="@+id/btn_choose_photo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/bt_choose_img"
+                android:src="@drawable/photo_library_48px"
                 android:backgroundTint="?attr/colorPrimary"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:layout_marginTop="20dp"
@@ -124,13 +124,13 @@
                 android:layout_height="wrap_content"
                 android:text="@string/tv_menu_take_pic_desc"
                 android:paddingTop="8dp"
-                android:textSize="14sp" />
+                android:textSize="16sp" />
 
             <ImageButton
                 android:id="@+id/btn_take_photo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/bt_take_img"
+                android:src="@drawable/photo_camera_48px"
                 android:backgroundTint="?attr/colorPrimary"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:layout_marginTop="20dp"
@@ -173,13 +173,13 @@
                 android:layout_height="wrap_content"
                 android:text="@string/tv_menu_decompress_desc"
                 android:paddingTop="8dp"
-                android:textSize="14sp" />
+                android:textSize="16sp" />
 
             <ImageButton
                 android:id="@+id/btn_view_photo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:src="@drawable/bt_upload_img"
+                android:src="@drawable/folder_open_48px"
                 android:backgroundTint="?attr/colorPrimary"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:layout_marginTop="20dp"

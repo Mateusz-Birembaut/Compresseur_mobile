@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -35,7 +36,7 @@ public class ResultCompressionFragment extends Fragment {
     private TabLayout tabLayout;
     private RecyclerView rvCompressed, rvOriginal;
     private TextView tvTaux, tvPsnr, tvOldSize, tvNewSize;
-    private ImageButton btBack;
+
     private int selectedIndex = 0;
 
     private SelectedImagesResultAdapter compressedAdapter;
@@ -54,7 +55,11 @@ public class ResultCompressionFragment extends Fragment {
                              @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.result_compression, container, false);
 
+        ImageButton btBack;
+        Button btQuit;
+
         btBack = view.findViewById(R.id.bt_back_to_menu);
+        btQuit = view.findViewById(R.id.mb_result_quit);
         tabLayout = view.findViewById(R.id.tab_layout_images);
 
         rvCompressed = view.findViewById(R.id.rv_compressed);
@@ -64,6 +69,8 @@ public class ResultCompressionFragment extends Fragment {
         tvPsnr    = view.findViewById(R.id.tv_psnr);
         tvOldSize = view.findViewById(R.id.tv_old_size);
         tvNewSize = view.findViewById(R.id.tv_new_size);
+
+        btQuit.setOnClickListener(v -> goToMainMenu());
 
         // ––––– BACK BUTTON –––––
         requireActivity().getOnBackPressedDispatcher().addCallback(
@@ -235,4 +242,17 @@ public class ResultCompressionFragment extends Fragment {
             tvNewSize.setText(getString(R.string.tv_result_output_size) + " : -");
         }
     }
+
+    void goToMainMenu(){
+        HomeMenuFragment homeMenuFragment = new HomeMenuFragment();
+
+        vm.clearResults();
+        vm.clearImgUris();
+
+        requireActivity().getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.fragment_container, homeMenuFragment)
+                .commit();
+    }
+
 }

@@ -3,4 +3,9 @@
     <external-files-path
         name="images"
         path="Pictures" />
+
+    <files-path
+        name="internal_files"
+        path="." />
+
 </paths>

@@ -80,7 +80,7 @@ long getFileSize(const std::string& filePath) {
 }
 
 
-void readSettings(const std::string& filename, CompressionSettings& settings) {
+void readSettings(const std::string& filename, CompressionSettings& settings, int * width , int * height ) {
     std::ifstream inFile(filename, std::ios::binary);
     if (!inFile) {
         std::cerr << "Error opening file for reading settings!" << std::endl;
@@ -88,6 +88,12 @@ void readSettings(const std::string& filename, CompressionSettings& settings) {
     }
 
     inFile.read(reinterpret_cast<char*>(&settings), sizeof(settings));
+    if (width) {
+        inFile.read(reinterpret_cast<char*>(width), sizeof(int));
+    }
+    if (height) {
+        inFile.read(reinterpret_cast<char*>(height), sizeof(int));
+    }
 
     if (!inFile) {
         std::cerr << "Error reading settings from file!" << std::endl;

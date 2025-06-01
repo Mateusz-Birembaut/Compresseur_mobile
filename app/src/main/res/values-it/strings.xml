@@ -1,31 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Compressore Immagini</string>
-    <string name="tv_compression_loading">Compressione in corso...</string>
+    <string name="app_name">Compressore Mobile</string>
+    <string name="tv_compression_loading">Compressione in corso…</string>
     <string name="tv_title_compression">Compressore</string>
     <string name="iv_compress_img_to_compress">Immagine da comprimere</string>
     <string name="tv_compression_methods">Metodo di compressione</string>
-    <string name="rb_compression_method_1">Metodo 1: JPEG</string>
-    <string name="rb_compression_method_2">Metodo 2: JPEG2000</string>
+    <string name="rb_compression_method_1">Metodo 1 (JPEG)</string>
+    <string name="rb_compression_method_2">Metodo 2 (JPEG2000)</string>
     <string name="tv_compression_quality">Fattore di qualità</string>
     <string name="bt_compress">Comprimi</string>
     <string name="tv_menu_title">Menu</string>
-    <string name="tv_menu_select_photo_compression">Seleziona una foto</string>
-    <string name="tv_menu_compression_desc">Scegli un’immagine sul tuo dispositivo da comprimere</string>
-    <string name="ib_compression_desc">Seleziona immagine</string>
+    <string name="tv_menu_select_photo_compression">Scegli foto</string>
+    <string name="tv_menu_compression_desc">Seleziona una o più foto dal tuo dispositivo per comprimerle</string>
+    <string name="ib_compression_desc">Scegli una foto</string>
     <string name="tv_menu_take_picture">Scatta una foto</string>
     <string name="tv_menu_take_pic_desc">Scatta una foto da comprimere</string>
-    <string name="ib_menu_take_pic_desc">Scatta foto</string>
-    <string name="tv_menu_decompress">Visualizza immagine</string>
-    <string name="tv_menu_decompress_desc">Seleziona un’immagine compressa da visualizzare</string>
-    <string name="ib_menu_decompress_desc">Visualizza immagine</string>
+    <string name="ib_menu_take_pic_desc">Scatta una foto</string>
+    <string name="tv_menu_decompress">I miei file compressi</string>
+    <string name="tv_menu_decompress_desc">Visualizza, decomprimi, invia o elimina file compressi</string>
+    <string name="ib_menu_decompress_desc">I miei file compressi</string>
     <string name="tv_result_result">Risultato</string>
     <string name="img_result_compressed">Immagine compressa</string>
     <string name="img_result_original">Immagine originale</string>
     <string name="iv_result_img_desc">Immagine</string>
     <string name="tv_result_infos">Informazioni</string>
     <string name="tv_result_compression_rate">Tasso di compressione</string>
+    <string name="tv_result_PSNR" translatable="false">PSNR</string>
     <string name="tv_result_output_size">Nuova dimensione</string>
     <string name="tv_result_input_size">Dimensione originale</string>
-    <string name="mb_result_save">Salva</string>
+    <string name="lang_fr" translatable="false">Français</string>
+    <string name="lang_en" translatable="false">English</string>
+    <string name="lang_es" translatable="false">Español</string>
+    <string name="lang_de" translatable="false">Deutsch</string>
+    <string name="lang_pl" translatable="false">Polski</string>
+    <string name="lang_pt" translatable="false">Português</string>
+    <string name="mb_result_quit">Ritorna al menu</string>
+    <string name="tv_title_list">I miei file compressi</string>
+    <string name="bt_import_list">Importa un file</string>
+    <string name="tv_compression_loading2">Decompressione in corso…\n</string>
+    <string name="toast_no_compressed_files">Le tue immagini compresse appariranno qui!</string>
+    <string name="toast_invalid_file">Seleziona un file che termini con .compressed</string>
+    <string name="toast_import_success">File importato!</string>
+    <string name="toast_import_failure">Impossibile importare</string>
+    <string name="toast_delete_failure">Impossibile eliminare il file</string>
+    <string name="toast_decompress_error">Errore durante la decompressione</string>
+    <string name="toast_export_success">Immagine esportata nella galleria</string>
+    <string name="toast_media_entry_error">Impossibile creare la voce MediaStore</string>
+    <string name="toast_export_failure">Impossibile esportare nella galleria</string>
+    <string name="share_chooser_title">Invia immagine tramite</string>
+    <string name="toast_camera_permission_denied">Permesso fotocamera negato</string>
+    <string name="toast_no_image_selected">Nessuna immagine selezionata</string>
 </resources>
+

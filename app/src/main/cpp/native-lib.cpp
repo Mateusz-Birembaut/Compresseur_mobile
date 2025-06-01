@@ -246,11 +246,70 @@ Java_com_example_compresseur_1mobile_CompressionFragment_decompressImageNative(
         JNIEnv *env,
         jobject thiz,
         jobject context,
-        jbyteArray imageData,
-        jint quality,
-        jint method) {
+        jstring filename) {
 
+            const char* filenameCStr = env->GetStringUTFChars(filename, nullptr);
 
+            jclass contextClass = env->GetObjectClass(context);
+            jmethodID getFilesDir = env->GetMethodID(contextClass, "getFilesDir", "()Ljava/io/File;");
+            jobject filesDir = env->CallObjectMethod(context, getFilesDir);
 
+            jclass fileClass = env->GetObjectClass(filesDir);
+            jmethodID getPath = env->GetMethodID(fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+            jstring pathStr = (jstring)env->CallObjectMethod(filesDir, getPath);
+            const char* dirPath = env->GetStringUTFChars(pathStr, nullptr);
 
+            std::string inputPath = filenameCStr;
+
+            env->ReleaseStringUTFChars(filename, filenameCStr);
+            env->ReleaseStringUTFChars(pathStr, dirPath);
+            env->DeleteLocalRef(pathStr);
+            env->DeleteLocalRef(fileClass);
+
+            CompressionSettings settings;
+            int width, height;
+
+            readSettings(inputPath, settings, &width, &height);
+
+            ImageBase imOut(width, height, true);
+
+            if (settings.transformationType == DCTTRANSFORM) {
+                decompression(inputPath.data(), "", imOut, settings);
+            } else {
+                decompression2000(inputPath.data(), "", imOut, settings);
+            }
+
+            int dataLength = width * height * 3;
+            jbyteArray rgbArray = env->NewByteArray(dataLength);
+            env->SetByteArrayRegion(rgbArray, 0, dataLength, reinterpret_cast<jbyte *>(imOut.data));
+
+            jclass resultClass = env->FindClass("com/example/compresseur_mobile/CompressionResult");
+            if (resultClass == nullptr) {
+                return nullptr;
+            }
+            jobject resultObj = env->AllocObject(resultClass);
+            if (resultObj == nullptr) {
+                return nullptr;
+            }
+
+            jfieldID compressedImageField = env->GetFieldID(resultClass, "compressedImage", "[B");
+            jfieldID widthField = env->GetFieldID(resultClass, "width", "I");
+            jfieldID heightField = env->GetFieldID(resultClass, "height", "I");
+            jfieldID qualityField = env->GetFieldID(resultClass, "quality", "I");
+            jfieldID methodField = env->GetFieldID(resultClass, "method", "I");
+
+            env->SetObjectField(resultObj, compressedImageField, rgbArray);
+            env->SetIntField(resultObj, widthField, width);
+            env->SetIntField(resultObj, heightField, height);
+            env->SetIntField(resultObj, qualityField, settings.QuantizationFactor);
+            env->SetIntField(resultObj, methodField, settings.transformationType == DCTTRANSFORM ? 1 : 2);
+
+            imOut.reset();
+
+            return resultObj;
 }
+
+
+
+
+

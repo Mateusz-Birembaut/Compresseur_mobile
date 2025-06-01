@@ -27,7 +27,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="40dp"
             android:layout_marginStart="21dp"
-            android:src="@drawable/bt_arrow_back"
+            android:src="@drawable/arrow_back_40px"
             android:background="@null"
             android:layout_alignParentTop="true"
             android:layout_alignParentStart="true"

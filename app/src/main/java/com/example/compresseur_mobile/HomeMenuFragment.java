@@ -15,6 +15,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.ImageButton;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -49,17 +50,42 @@ public class HomeMenuFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.home_menu, container, false);
 
+        ImageButton btnTakeImg= view.findViewById(R.id.btn_take_photo);
 
+
+        //si on a pas de caméra sur le tel on disable le bouton
+        boolean hasCamera = requireContext().getPackageManager().hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY);
+        if (!hasCamera) {
+            btnTakeImg.setEnabled(false);
+            btnTakeImg.setAlpha(0.5f);
+        }
+
+        // si la permission est refusé on disable le bouton
         requestCameraPermission = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
                     if (isGranted) {
                         takePhoto();
                     } else {
-                        Toast.makeText(requireContext(), "Permission caméra refusée", Toast.LENGTH_SHORT).show();
+                        btnTakeImg.setEnabled(false);
+                        btnTakeImg.setAlpha(0.5f);
+                        Toast.makeText(requireContext(), getString(R.string.toast_camera_permission_denied), Toast.LENGTH_SHORT).show();
                     }
                 }
         );
+
+        //si on a pas de permission on la demande
+        btnTakeImg.setOnClickListener(v -> {
+            if (!hasCamera) return;
+
+            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                requestCameraPermission.launch(Manifest.permission.CAMERA);
+            } else {
+                takePhoto();
+            }
+        });
+
+
 
         pickMultipleMedia = registerForActivityResult(
                 new ActivityResultContracts.PickMultipleVisualMedia(9),
@@ -69,26 +95,25 @@ public class HomeMenuFragment extends Fragment {
                         vm.setImgUris(uris);
                         goToCompressionMultiple();
                     } else {
-                        Toast.makeText(requireContext(), "Aucune image sélectionnée", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(requireContext(), getString(R.string.toast_no_image_selected), Toast.LENGTH_SHORT).show();
                     }
                 }
         );
 
         takePicture = registerForActivityResult(new ActivityResultContracts.TakePicture(), result -> {
             if (result) {
-                Log.d("PhotoPicker", "Photo taken successfully: " + imgURI);
                 CompressionViewModel vm = new ViewModelProvider(requireActivity()).get(CompressionViewModel.class);
                 vm.clearImgUris();
                 vm.addImgUri(imgURI);
                 goToCompressionMultiple();
             } else {
-                Log.d("PhotoPicker", "Failed to take photo");
+                //Log.d("PhotoPicker", "Failed to take photo");
             }
         });
 
 
         ImageButton btnChooseImg = view.findViewById(R.id.btn_choose_photo);
-        ImageButton btnTakeImg= view.findViewById(R.id.btn_take_photo);
+
         ImageButton btnUploadImg = view.findViewById(R.id.btn_view_photo);
 
         btnChooseImg.setOnClickListener(v -> {
@@ -99,24 +124,23 @@ public class HomeMenuFragment extends Fragment {
             );
         });
 
-        btnTakeImg.setOnClickListener(v -> {
-            if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                takePhoto();
-            } else {
-                requestCameraPermission.launch(Manifest.permission.CAMERA);
-            }
-        });
 
         btnUploadImg.setOnClickListener(v -> {
-            /*
-            pickMedia.launch(new PickVisualMediaRequest.Builder()
-                    .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE)
-                    .build());
-
-             */
+            requireActivity().getSupportFragmentManager().beginTransaction()
+                                .replace(R.id.fragment_container, new CompressedFileListFragment())
+                                .addToBackStack(null)
+                                .commit();
         });
 
-
+        // quand on appuie sur le bouton retour on ne fait rien
+        requireActivity().getOnBackPressedDispatcher().addCallback(
+                getViewLifecycleOwner(),
+                new OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                    }
+                }
+        );
 
         return view;
     }
@@ -175,7 +199,7 @@ public class HomeMenuFragment extends Fragment {
         try {
             photoFile = createImageFile();
         } catch (IOException ex) {
-            Log.e("PhotoPicker", "Error occurred while creating the File");
+            //Log.e("PhotoPicker", "Error occurred while creating the File");
         }
         if (photoFile != null) {
             imgURI = FileProvider.getUriForFile(requireContext(), "com.example.compresseur_mobile.fileprovider", photoFile);
@@ -200,7 +224,5 @@ public class HomeMenuFragment extends Fragment {
                 .commit();
     }
 
-    private void intentToDecompress() {
-    }
 
 }

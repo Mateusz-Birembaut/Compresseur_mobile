@@ -71,11 +71,11 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@null"
-            android:src="@drawable/bt_arrow_back"
+            android:src="@drawable/arrow_back_40px"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             android:layout_marginStart="5dp"
-            android:layout_marginTop="24dp"/>
+            android:layout_marginTop="22dp"/>
 
         <TextView
             android:id="@+id/tv_title_compression"
@@ -139,12 +139,14 @@
                         android:layout_height="wrap_content"
                         android:checked="true"
                         android:text="@string/rb_compression_method_1"
+                        android:textColor="?attr/colorOnSurface"
                         app:buttonTint="@color/radio_button_color" />
 
                     <RadioButton
                         android:id="@+id/rb_method_2"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:textColor="?attr/colorOnSurface"
                         android:text="@string/rb_compression_method_2"
                         app:buttonTint="@color/radio_button_color" />
                 </RadioGroup>
@@ -191,6 +193,7 @@
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
             android:backgroundTint="#2E2E2E"
+            android:textColor="@android:color/white"
             android:text="@string/bt_compress"
             android:textSize="20sp"
             app:cornerRadius="16dp"

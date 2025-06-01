@@ -431,6 +431,8 @@ void decompression2000(const char * cNomImgIn, const char * cNomImgOut, ImageBas
 
     std::vector<std::thread> threads;
 
+    __android_log_print(ANDROID_LOG_INFO, "Decompression2000", "cNomImgIn: %s", cNomImgIn);
+
     readSettings(cNomImgIn, settings);
     //settings.printSettings();
 
