@@ -1,0 +1,40 @@
+@startuml
+
+skinparam nodesep 500
+skinparam ranksep 500
+
+
+!pragma layout smetana
+
+
+component "HomeMenuFragment" as Home
+component "CompressionFragment" as Compression
+component "ResultCompressionFragment" as Result
+component "CompressedFileListFragment" as FileList
+
+component "CompressionViewModel" as VM
+component "NativeLib C/C++" as Native
+component "FileStorage\n(cache + internal)" as Files
+
+
+Home --> Compression      : ouvrir Compression
+Home --> FileList         : ouvrir Mes fichiers
+
+Compression --> Result    : ouvrir Résultat
+Compression --> Home      : back
+
+Result --> Compression    : back
+Result --> Home           : "bouton 'Retour au menu'"
+
+FileList --> Home         : back
+
+
+Home ..> VM               : observe / set
+Compression ..> VM        : observe / set
+Result ..> VM             : observe / set
+FileList ..> VM           : observe / set
+
+VM --> Native             : JNI : compress/decompress()
+Native --> Files          : écrit dans cache
+Files --> Native          : lit byte[] compressé
+@enduml

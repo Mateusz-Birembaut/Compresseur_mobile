@@ -77,8 +77,6 @@ public class CompressedFileListFragment extends Fragment {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("*/*");
-            String[] mimeTypes = { "image/png", "application/octet-stream" };
-            intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
             startActivityForResult(intent, PICK_COMPRESSED_FILE);
         });
 
